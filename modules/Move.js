@@ -42,16 +42,20 @@ class Move {
         draw();
 
         // redraw the scene
-        function draw() {
+        function draw(newX, newY) {
             // Draw the board
             self.board.drawBoard();
 
             // redraw each piece in the pieces[] array
-            for (var i = 0; i < pieces.length; i++) {
-                var piece = pieces[i];
-
-                if (piece.p.image) {
+            for (let i = 0; i < pieces.length; i++) {
+                let piece = pieces[i];
+                // if the piece has an image and has NOT moved coords then draw it onto the canvas with the same coords
+                if (piece.p.x != newX && piece.p.image || piece.p.y != newY && piece.p.image) {
                     ctx.drawImage(piece.p.image, piece.p.x, piece.p.y);
+                }
+                // If the piece has moved and has an image then we draw it onto the canvas with the NEW coords which are set to the centre of the closest tile
+                else if (piece.p.image && piece.p.x == newX || piece.p.image && piece.p.y == newY) {
+                    ctx.drawImage(piece.p.image, newX, newY);
                 }
             }
         }
@@ -71,6 +75,7 @@ class Move {
             dragok = false;
             for (let i = 0; i < pieces.length; i++) {
                 let piece = pieces[i];
+                // If the mouse is inside the piece when we click then set dragging properties to be true
                 if (mx > piece.p.x && mx < piece.p.x + piece.p.width && my > piece.p.y && my < piece.p.y + piece.p.height) {
                     // if yes, set that pieces isDragging=true
                     dragok = true;
@@ -90,69 +95,31 @@ class Move {
             e.preventDefault();
             e.stopPropagation();
 
+            let closest;
+
             // clear all the dragging flags
             dragok = false;
             for (let i = 0; i < pieces.length; i++) {
                 if (pieces[i].isDragging) {
                     pieces[i].isDragging = false;
 
-                    let closest = getClosestTile(pieces[i].p);
-
-                    // pieces[i].x = closest.screenX;
-                    // pieces[i].y = closest.screenY;
-                    console.log("This is the closest tile: ", closest);
-
-                    console.log("The x coord for the piece: ", pieces[i].p.x, " and the Y coord: ", pieces[i].p.y);
-                    if (self.inTile(pieces[i].p)) {
-                        // TODO: Some code that places the piece we moved to exactly the middle of the tile
-
-
+                    // Calls to the method getClosestTile which will find the closest tile for the given piece
+                    closest = self.getClosestTile(pieces[i].p);
+                    
+                    // Saves the x and y for the piece we have moved
+                    const oldX = pieces[i].p.x;
+                    const oldY = pieces[i].p.y;
+                    // Sets the new x and y for the piece we have moved
+                    pieces[i].p.x = closest.screenX;
+                    pieces[i].p.y = closest.screenY;
+                    // If the piece has moved then draw the piece with the new x and y coords
+                    if (pieces[i].p.x != oldX || pieces[i].p.y != oldY) {
+                        draw(pieces[i].p.x, pieces[i].p.y);     
                     }
+                    console.log("This is the end X coord: ", pieces[i].p.x, " and the end Y coord: ", pieces[i].p.y);
                 }
             }
         }
-
-        function getClosestTile(piece) {
-
-            let curr = BOARD[4][5];
-            console.log("current tile = ", curr);
-            console.log("piece = ", piece);
-            console.log("piece x = ", piece.x);
-            
-            let diffX = Math.abs(piece.x - curr.screenX);
-            let diffY = Math.abs(piece.y - curr.screenY);
-
-            console.log("diffX = ", diffX);
-            console.log("diffY = ", diffY);
-            console.log("BOARD Length = ", BOARD.length);
-            console.log("BOARD Length = ", BOARD[0].length);
-
-            for (let i = 0; i < BOARD.length; i++) {
-                for (let j = 0; j < BOARD[0].length; j++) {
-                    const tileX = self.tile.screenX;
-                    const tileY = self.tile.screenY;
-
-                    let newDiffX = Math.abs(piece.x - BOARD[i][j].screenX);
-                    let newDiffY = Math.abs(piece.y - BOARD[i][j].screenY);
-
-                    console.log("newDiffX = ", newDiffX);
-                    console.log("current tile = ", BOARD[i][j]);
-
-                    if (newDiffX < diffX) {
-                        diffX = newDiffX;
-                        curr = BOARD[i][j];
-                    }
-                    if (newDiffY < diffY) {
-                        diffY = newDiffY;
-                        curr = BOARD[i][j];
-                    }
-                    return curr;
-                    }
-                }
-            
-            
-        }
-
 
         // handle mouse moves
         function myMove(e) {
@@ -193,16 +160,26 @@ class Move {
         } 
     }
 
-// TODO: Possibly move this to be just a function rather than a method, 
-    inTile(piece) {
-        let stringX = piece.x.toString();
-        let stringY = piece.y.toString();
+// Finds the closest tile for a given piece
+    getClosestTile(piece) {
 
-        if (stringX.charAt(1) >= 5) {
-            return true;
-        }
-        else {
-            return false;
+                
+
+        for (let i = 0; i < BOARD.length; i++) {
+            for (let j = 0; j < BOARD[0].length; j++) {
+
+                let diffX = Math.abs(piece.x - BOARD[i][j].screenX);
+                let diffY = Math.abs(piece.y - BOARD[i][j].screenY);
+
+                // console.log("newDiffX = ", newDiffX);
+                // console.log("current tile = ", BOARD[i][j]);
+
+                if (diffX <= 50 && diffY <= 50) {
+                    // console.log("We need to be on FILE: ", BOARD[i][j].x);
+                    // console.log("We need to be on RANK: ", BOARD[i][j].y);
+                    return BOARD[i][j];
+                }
+            }
         }
     }
 
