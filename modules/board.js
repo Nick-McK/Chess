@@ -19,15 +19,11 @@ class Board {
         const ctx = canvas.getContext("2d");
 
         let clientRect = canvas.getBoundingClientRect();
-        let offsetX = clientRect.left;
-        let offsetY = clientRect.top;
 
 
         for (let i = 0; i < FILE.length; i++) {
             BOARD[i] = [];
             for (let j = 0; j < RANK.length; j++) {
-                // If the first number of i and j are either even/odd OR odd/even then make the square white
-                // Default fill is black
                 if ((i % 2 && !(j % 2)) || (!(i % 2) && (j % 2))) {
                     let tile = new Tile(FILE[i], RANK[j], true, false, i * 100, ((RANK.length - 1) - j) * 100);
                     BOARD[i][j] = tile;

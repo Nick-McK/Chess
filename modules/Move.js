@@ -1,6 +1,7 @@
 import {Board, BOARD, canvas, pieces} from "./board.js";
-import {Piece, wP} from "./Piece.js";
+import {bishop, Piece, wP} from "./Piece.js";
 import {Tile} from "./Tile.js";
+import {Game} from "../Game.js";
 
 
 
@@ -8,6 +9,8 @@ class Move {
     constructor() {
         this.board = new Board();
         this.tile = new Tile();
+        this.piece = new Piece();
+        // this.game = new Game();
     }
 
     // Moves a piece on the canvas by listening to 3 mouse events: mousedown, mouseup and mousemove
@@ -59,7 +62,7 @@ class Move {
                 }
             }
         }
-
+// TODO: Move this to be its own method along with myUp and myMove
         // handle mousedown events
         function myDown(e) {
 
@@ -81,6 +84,27 @@ class Move {
                     dragok = true;
                     piece.isDragging = true;
                     console.log("The x coord for the piece: ", piece.p.x, " and the Y coord: ", piece.p.y);
+
+                    let pieceType = piece.p.getType();
+                    let pieceColour = piece.p.getColour();
+
+                    switch(pieceType) {
+                        case "pawn":
+                            if (pieceColour) {
+                                self.drawValid(piece);
+                            } else {
+                                self.drawValid(piece)
+                                }
+                        case rook:
+
+                        case knight:
+
+                        case bishop:
+
+                        case queen:
+
+                        case king:
+                    }
                 }
             }
             // save the current mouse position
@@ -88,12 +112,14 @@ class Move {
             startY = my;
         }
 
-
+// TODO: Move this to be its own method along with myDown and myMove
         // handle mouseup events
         function myUp(e) {  
             // tell the browser we're handling this mouse event
             e.preventDefault();
             e.stopPropagation();
+
+            this.game = new Game();
 
             let closest;
 
@@ -114,12 +140,25 @@ class Move {
                     pieces[i].p.y = closest.screenY;
                     // If the piece has moved then draw the piece with the new x and y coords
                     if (pieces[i].p.x != oldX || pieces[i].p.y != oldY) {
-                        draw(pieces[i].p.x, pieces[i].p.y);     
+                        draw(pieces[i].p.x, pieces[i].p.y);
+                        self.playMoveSound();   
+                        // Loop through each element of our boards FILE and RANK 
+                        for (let file of BOARD) {
+                            for (let rank of file) {
+                                // If the current tile is the same as the tile we have placed our piece on then set our target piece to be the current tile
+                                if (rank.screenX == closest.screenX && rank.screenY == closest.screenY) {
+                                    this.game.playMove(pieces[i].p, rank);
+                                    // console.log("this is our target tile: ", target);
+                                }
+                            }
+                        }
+                        
                     }
-                    console.log("This is the end X coord: ", pieces[i].p.x, " and the end Y coord: ", pieces[i].p.y);
+                    // console.log("This is the end X coord: ", pieces[i].p.x, " and the end Y coord: ", pieces[i].p.y);
                 }
             }
         }
+// TODO: Move this to be its own method along with myUp and myDown
 
         // handle mouse moves
         function myMove(e) {
@@ -139,19 +178,26 @@ class Move {
                 let dx = mx - startX;
                 let dy = my - startY;
 
-                // move each rect that isDragging 
+                let pieceMoves;
+
+                // move each piece that isDragging is true for
                 // by the distance the mouse has moved
                 // since the last mousemove
                 for (let i = 0; i < pieces.length; i++) {
                     let piece = pieces[i];
                     if (piece.isDragging) {
                         piece.p.x += dx;
-                        piece.p.y += dy;  
+                        piece.p.y += dy;
+
+                        pieceMoves = piece;
+
+
                     }
                 }
-
                 // redraw the scene with any updates to the piece positions
                 draw();
+// TODO: Think of a better way to do this
+                self.drawValid(pieceMoves);
 
                 // reset the starting mouse position for the next mousemove
                 startX = mx;
@@ -160,7 +206,13 @@ class Move {
         } 
     }
 
-// Finds the closest tile for a given piece
+/**
+ * Takes in the piece we are moving and when placed down will check what tile is closest to the piece so we can adjust where it is placed
+ * 
+ * 
+ * @param {Piece} piece the current piece we are moving 
+ * @returns the tile that is closest to the piece we are moving
+ */
     getClosestTile(piece) {
 
                 
@@ -182,8 +234,49 @@ class Move {
             }
         }
     }
+/**
+ * This method will take in a given piece on the board and highlight or show all the available moves for it.
+ * 
+ * TODO: Look at if this is the correct way to create a new game object as it will call a new game every time we pick up a piece
+ * 
+ * 
+ * 
+ * @param {Piece} piece the given piece that we need to draw available moves for on the board
+ */
+    drawValid(piece) {
+        const ctx = canvas.getContext("2d");
+
+        
+
+        this.game = new Game();
+
+        let validMoves = new Set();
+
+        validMoves = this.game.getPossibleMoves(piece);
+        
+        for (let move of validMoves) {
+            // ctx.fillStyle = "red";
+            // ctx.fillRect(move.screenX, move.screenY, 100, 100);
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = "green";
+            ctx.strokeRect(move.screenX, move.screenY, 100, 100);
+        }
+        
+        
+
+        console.log("we made it: ");
+    }
 
 
+    playMoveSound() {
+        let audio = new Audio("../assets/move.mp3");
+        return audio.play();
+    }
+
+    playCaptureSound() {
+        let audio = new Audio("../assets/capture.mp3");
+        return audio.play();
+    }
 
 }
 
