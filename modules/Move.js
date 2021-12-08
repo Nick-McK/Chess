@@ -53,12 +53,12 @@ class Move {
             for (let i = 0; i < pieces.length; i++) {
                 let piece = pieces[i];
                 // if the piece has an image and has NOT moved coords then draw it onto the canvas with the same coords
-                if (piece.p.x != newX && piece.p.image || piece.p.y != newY && piece.p.image) {
-                    ctx.drawImage(piece.p.image, piece.p.x, piece.p.y);
+                if (piece.x != newX && piece.image || piece.y != newY && piece.image) {
+                    ctx.drawImage(piece.image, piece.x, piece.y);
                 }
                 // If the piece has moved and has an image then we draw it onto the canvas with the NEW coords which are set to the centre of the closest tile
-                else if (piece.p.image && piece.p.x == newX || piece.p.image && piece.p.y == newY) {
-                    ctx.drawImage(piece.p.image, newX, newY);
+                else if (piece.image && piece.x == newX || piece.image && piece.y == newY) {
+                    ctx.drawImage(piece.image, newX, newY);
                 }
             }
         }
@@ -79,14 +79,15 @@ class Move {
             for (let i = 0; i < pieces.length; i++) {
                 let piece = pieces[i];
                 // If the mouse is inside the piece when we click then set dragging properties to be true
-                if (mx > piece.p.x && mx < piece.p.x + piece.p.width && my > piece.p.y && my < piece.p.y + piece.p.height) {
+                if (mx > piece.x && mx < piece.x + piece.width && my > piece.y && my < piece.y + piece.height) {
                     // if yes, set that pieces isDragging=true
                     dragok = true;
                     piece.isDragging = true;
-                    console.log("The x coord for the piece: ", piece.p.x, " and the Y coord: ", piece.p.y);
+                    console.log("The x coord for the piece: ", piece.x, " and the Y coord: ", piece.y);
 
-                    let pieceType = piece.p.getType();
-                    let pieceColour = piece.p.getColour();
+                    let pieceType = piece._type;
+                    let pieceColour = piece._isWhite;
+                    console.log("I am a: ", pieceColour, " ", pieceType);
 
                     switch(pieceType) {
                         case "pawn":
@@ -95,15 +96,7 @@ class Move {
                             } else {
                                 self.drawValid(piece)
                                 }
-                        case rook:
-
-                        case knight:
-
-                        case bishop:
-
-                        case queen:
-
-                        case king:
+                        
                     }
                 }
             }
@@ -130,31 +123,44 @@ class Move {
                     pieces[i].isDragging = false;
 
                     // Calls to the method getClosestTile which will find the closest tile for the given piece
-                    closest = self.getClosestTile(pieces[i].p);
+                    closest = self.getClosestTile(pieces[i]);
                     
                     // Saves the x and y for the piece we have moved
-                    const oldX = pieces[i].p.x;
-                    const oldY = pieces[i].p.y;
+                    const oldX = pieces[i].x;
+                    const oldY = pieces[i].y;
                     // Sets the new x and y for the piece we have moved
-                    pieces[i].p.x = closest.screenX;
-                    pieces[i].p.y = closest.screenY;
+                    pieces[i].x = closest.screenX;
+                    pieces[i].y = closest.screenY;
                     // If the piece has moved then draw the piece with the new x and y coords
-                    if (pieces[i].p.x != oldX || pieces[i].p.y != oldY) {
-                        draw(pieces[i].p.x, pieces[i].p.y);
+                    if (pieces[i].x != oldX || pieces[i].y != oldY) {
+                        draw(pieces[i].x, pieces[i].y);
                         self.playMoveSound();   
-                        // Loop through each element of our boards FILE and RANK 
-                        for (let file of BOARD) {
-                            for (let rank of file) {
-                                // If the current tile is the same as the tile we have placed our piece on then set our target piece to be the current tile
-                                if (rank.screenX == closest.screenX && rank.screenY == closest.screenY) {
-                                    this.game.playMove(pieces[i].p, rank);
-                                    // console.log("this is our target tile: ", target);
-                                }
-                            }
+
+                        let target;
+                        for (let f of BOARD) {
+                            target = f.filter(t => {return t.screenX == closest.screenX && t.screenY == closest.screenY})
+                            // console.log("This is the target, ", target);
                         }
+                        this.game.playMove(pieces[i], target);
+
+
+
+
+
+
+                        // // Loop through each element of our boards FILE and RANK 
+                        // for (let file of BOARD) {
+                        //     for (let rank of file) {
+                        //         // If the current tile is the same as the tile we have placed our piece on then set our target piece to be the current tile
+                        //         if (rank.screenX == closest.screenX && rank.screenY == closest.screenY) {
+                        //             this.game.playMove(pieces[i], rank);
+                        //             // console.log("this is our target tile: ", target);
+                        //         }
+                        //     }
+                        // }
                         
                     }
-                    // console.log("This is the end X coord: ", pieces[i].p.x, " and the end Y coord: ", pieces[i].p.y);
+                    // console.log("This is the end X coord: ", pieces[i].x, " and the end Y coord: ", pieces[i].y);
                 }
             }
         }
@@ -186,8 +192,8 @@ class Move {
                 for (let i = 0; i < pieces.length; i++) {
                     let piece = pieces[i];
                     if (piece.isDragging) {
-                        piece.p.x += dx;
-                        piece.p.y += dy;
+                        piece.x += dx;
+                        piece.y += dy;
 
                         pieceMoves = piece;
 
@@ -246,25 +252,22 @@ class Move {
     drawValid(piece) {
         const ctx = canvas.getContext("2d");
 
-        
 
         this.game = new Game();
 
         let validMoves = new Set();
-
         validMoves = this.game.getPossibleMoves(piece);
-        
+        // console.log("valid moves: ", validMoves);
         for (let move of validMoves) {
             // ctx.fillStyle = "red";
             // ctx.fillRect(move.screenX, move.screenY, 100, 100);
             ctx.lineWidth = 5;
             ctx.strokeStyle = "green";
             ctx.strokeRect(move.screenX, move.screenY, 100, 100);
+           
+            
         }
         
-        
-
-        console.log("we made it: ");
     }
 
 

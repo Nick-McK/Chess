@@ -31,12 +31,11 @@ class Game {
 
         let moveSet = new Set();
 
-
-        if (piece.p.getType() == "pawn") {
-            let tile = piece.p.getTile();
-            console.log("current tile: ", tile);
-
-            if (piece.p.getTile().getY() == 2) {
+        if (piece.type == "pawn") {
+            let tile = piece.tile;
+            // console.log("current tile: ", tile);
+            // Using _y here to ensure that we dont change the property as there is no setter it will give an error if the property is changed
+            if (piece.tile._y == 2) {
 
 // TODO: Look at how to make this dynamic and not hard coded with the + 1 and + 2 -> probably going to need maths to find a formula for the moves for each piece 
                 for (let i = 0; i < BOARD.length; i++) {
@@ -44,25 +43,12 @@ class Game {
                         if (BOARD[i][j] == tile) {
                             moveSet.add(BOARD[i][j + 1]);
                             moveSet.add(BOARD[i][j + 2]);
-                            console.log("We just added moves: ", moveSet, " for piece: ", piece.p);
+                            // console.log("We just added moves: ", moveSet, " for piece: ", piece.p);
                         }
                     }
                 }
-
-                // for (let el of BOARD) {
-                //     console.log("EL: ", el);
-                //     for (let inner of el) {
-                //         if (inner == tile) {
-                //             moveSet.add();
-                //             console.log("We just added: ", inner);
-                //         }
-                //     }
-                // }
-
             }
-
         }
-
         return moveSet;
     }
 
@@ -70,21 +56,28 @@ class Game {
 /** 
  * Plays a move in our array board and updates all the associated values "behind the scenes".
  * 
+ * 
+ * 
  * @param {Piece} piece the piece we are moving from one tile to another 
  * @param {Tile} target the target tile we are moving our piece to
  */
     playMove(piece, target) {
-         let startTile = piece.getTile();
+        let startTile = piece.getTile;
 
-         startTile.isEmpty = true; // Set the tile we have moved from to be true
+        
 
-         target.isEmpty = false; // Setting the target tile to having a piece on it
+        console.log("Start tile before any changes: ", piece.tile);
 
-         piece.tile = target; // Update our piece to be on our new tile
+        piece._isEmpty = true;; // Set the tile we have moved from to be true
 
-         console.log("This is our target tile: ", target);
-         console.log("This tile is: ", startTile);
+        target._isEmpty = false; // Setting the target tile to having a piece on it
+
+        piece._tile = target; // Update our piece to be on our new tile
+
+         console.log("Target tile after changes: ", target);
+         console.log("Start tile after changes: ", piece.tile);
          console.log("This is our piece we have moved: ", piece);
+         console.log("to tile: ", piece.tile);
 
     }
 
@@ -101,7 +94,7 @@ class Game {
 
         // this.getPossibleMoves(pieces[5]);
 
-        console.log("This is the pieces array: ", pieces);
+        // console.log("This is the pieces array: ", pieces);
     }
 
 }

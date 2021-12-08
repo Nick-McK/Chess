@@ -8,24 +8,40 @@ class Tile {
         this.screenY = screenY;
     };
 
-    getTileCoords() {
-        return [this.screenX, this.screenY];
-    }
-
-    isEmpty() {
-        return this.isEmpty;
-    }
-
-    isWhite() {
-        return isSqWhite;
-    }
-    getX() {
+    get _x() {
         return this.x;
     }
-    getY() {
+
+    set _x(newX) {
+        this.x = newX;
+    }
+
+    get _y() {
         return this.y;
     }
 
+    // set _y(newY) {
+    //     this.y = newY;
+    // }
+    get _isEmpty() {
+        return this.isEmpty;
+    }
+
+    set _isEmpty(newEmpty) {
+        this.isEmpty = newEmpty;
+    }
+
+    get _isSqWhite() {
+        return this.isSqWhite;
+    }
+
+    get _screenX() {
+        return this.screenX;
+    }
+
+    get _screenY() {
+        return this.screenY;
+    }
     
 
 };

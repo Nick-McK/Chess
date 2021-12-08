@@ -39,7 +39,7 @@ bP.src = "../assets/bPawn.svg";
 
 
 class Piece {
-    constructor(x, y, width, height, image, tile, isWhite, type) {
+    constructor(x, y, width, height, image, tile, isWhite, type, isDragging) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -48,28 +48,59 @@ class Piece {
         this.tile = tile;
         this.isWhite = isWhite;
         this.type = type;
+        this.isDragging = isDragging;
     }
 
-    getX() {
-        return this.x;
-    }
 
-    getY() {
-        return this.y;
-    }
-
-    // returns the tile that the piece is on
-    getTile() {
+    get _tile() {
         return this.tile;
     }
 
-    getColour() {
+    set _tile(newTile) {
+        this.tile = newTile;
+    }
+
+    get _isWhite() {
         return this.isWhite;
     }
 
-    getType() {
+    set _isWhite(newWhite) {
+        this.isWhite = newWhite;
+    }
+
+    get _x() {
+        return this.x;
+    }
+
+    set _x(newX) {
+        this.x = newX;
+    }
+
+    get _y() {
+        return this.y;
+    }
+
+    set _y(newY) {
+        this.y = newY;
+    }
+
+    get _type() {
         return this.type;
     }
+
+    set _type(newType) {
+        this.type = newType;
+    }
+
+    get _isDragging() {
+        return this.isDragging;
+    }
+
+    set _isDragging(newDragging) {
+        this.isDragging = newDragging;
+    }
+
+
 
 }
 
