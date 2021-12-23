@@ -1,4 +1,4 @@
-import {BOARD, Board, FILE, RANK, table} from "./board.js";
+import {BOARD, Board, FILE, RANK, table} from "./Board.js";
 import {Piece, wP, pawn, rook} from "./Piece.js";
 import {Tile} from "./Tile.js";
 import {Move, getPieceMap} from "../Move.js";

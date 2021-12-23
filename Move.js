@@ -1,4 +1,4 @@
-import {Board, BOARD, canvas, pieces, table, updateTable} from "./modules/board.js";
+import {Board, BOARD, canvas, pieces, table, updateTable} from "./modules/Board.js";
 import {bishop, Piece, wP} from "./modules/Piece.js";
 import {Tile} from "./modules/Tile.js";
 import {Rules} from "./modules/Rules.js";
@@ -314,12 +314,12 @@ class Move {
 
 
     playMoveSound() {
-        let audio = new Audio("../Chess in JS/assets/move.mp3");
+        let audio = new Audio("../assets/move.mp3");
         return audio.play();
     }
 
     playCaptureSound() {
-        let audio = new Audio("../Chess in JS/assets/capture.mp3");
+        let audio = new Audio("../assets/capture.mp3");
         return audio.play();
     }
 
