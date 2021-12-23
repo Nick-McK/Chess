@@ -4,13 +4,14 @@ import {Tile} from "./modules/Tile.js";
 import {Rules} from "./modules/Rules.js";
 
 
-
 class Move {
     constructor() {
         this.board = new Board();
         this.tile = new Tile();
         this.piece = new Piece();
         this.rules = new Rules();
+
+        
         // this.game = new Game();
     }
 
@@ -28,6 +29,10 @@ class Move {
         let startX;
         let startY;
         let pieceHeld;
+
+        let whiteToMove = true;
+
+        let pieceMoves = new Set();
         
         // Rebinds the this keyword so that we can use it in our other functions as when "this" is used inside a function it refers to the object window (in this case the canvas). We can still use "this" after it has been bound to self in our methods within the class
         let self = this;
@@ -41,20 +46,15 @@ class Move {
         draw();
 
         // redraw the scene
-        function draw(newX, newY) {
+        function draw() {
             // Draw the board
             self.board.drawBoard();
             let pieceMap = getPieceMap(table);
-
             // redraw each piece in the pieces[] array
             for (let piece of pieceMap.values()) {
-                // if the piece has an image and has NOT moved coords then draw it onto the canvas with the same coords
-                if (piece.x != newX && piece.image || piece.y != newY && piece.image) {
+                // if the piece has an image then draw it onto the canvas with the piece coords
+                if (piece.image) {
                     ctx.drawImage(piece.image, piece.x, piece.y);
-                }
-                // If the piece has moved and has an image then we draw it onto the canvas with the NEW coords which are set to the centre of the closest tile
-                else if (piece.image && piece.x == newX || piece.image && piece.y == newY) {
-                    ctx.drawImage(piece.image, newX, newY);
                 }
             }
         }
@@ -90,43 +90,57 @@ class Move {
                     switch(pieceType) {
                         case "pawn":
                             if (pieceColour) {
+                                // pieceMoves = this.getPossibleMoves(piece);
                                 self.drawValid(piece);
+                                continue;
                             }else {
-                                self.drawValid(piece)
+                                self.drawValid(piece);
+                                continue;
                             }
                         case "rook":
                             if (pieceColour) {
                                 self.drawValid(piece);
+                                continue;
                             }else {
                                 self.drawValid(piece);
+                                continue;
                             }
                         case "knight":
                             if (pieceColour) {
                                 self.drawValid(piece);
+                                continue;
                             }else {
                                 self.drawValid(piece);
+                                continue;
                             }
                         case "bishop":
                             if (pieceColour) {
                                 self.drawValid(piece);
+                                continue;
                             }else {
                                 self.drawValid(piece);
+                                continue;
                             }
                         case "queen":
                             if (pieceColour) {
                                 self.drawValid(piece);
+                                continue;
                             }else {
                                 self.drawValid(piece);
+                                continue;
                             }
                         case "king":
                             if (pieceColour) {
                                 self.drawValid(piece);
+                                continue;
                             }else {
                                 self.drawValid(piece);
+                                continue;
                             }
                     }
                 }
             }
+            
             // save the current mouse position
             startX = mx;
             startY = my;
@@ -140,7 +154,6 @@ class Move {
             e.stopPropagation();
 
             let closest;
-            let values = table.values();
 
             // clear all the dragging flags
             dragok = false;
@@ -151,37 +164,81 @@ class Move {
                 if (piece.isDragging) {
                     piece.isDragging = false;
 
+                    if (whiteToMove == true) {
+                        if (!piece.isWhite) {
+                            piece.x = piece.tile.screenX;
+                            piece.y = piece.tile.screenY;
+                            draw();
+                        }
+                    } else {
+                        if (piece.isWhite) {
+                            piece.x = piece.tile.screenX;
+                            piece.y = piece.tile.screenY;
+                            draw();
+                        }
+                    }
+                    
                     // Calls to the method getClosestTile which will find the closest tile for the given piece after we have dropped it onto the board
                     closest = self.getClosestTile(piece);
                     
                     // Sets the new x and y for the piece we have moved
                     piece.x = closest.screenX;
                     piece.y = closest.screenY;
+                    
                     // If the piece has moved then draw the piece with the new x and y coords
 
                     let startTileX = piece.tile.screenX;
                     let startTileY = piece.tile.screenY;
+
+                    let toTile;
+                    let targetTileVal;
+                    for (let [key, value] of table.entries()) {
+                        if (key.screenX == closest.screenX && key.screenY == closest.screenY) {
+                            toTile = key;
+                            targetTileVal = value;
+                        }   
+                    }
+
                     // If the the tile that we drop our piece on is in the possible move list for our piece, then continue with executing a move. If not then move the piece back to the starting tile
                     if ((self.getPossibleMoves(piece).has(closest))) {
-                        draw(piece.x, piece.y);
-                        self.playMoveSound();   
 
-                        let toTile;
-                        for (let [key, value] of table.entries()) {
-                            if (key.screenX == closest.screenX && key.screenY == closest.screenY) {
-                                toTile = key;
-                            }   
+                        if (targetTileVal.isWhite == whiteToMove) {
+                            piece.x = startTileX;
+                            piece.y = startTileY;
+                            draw();
+                            continue;
                         }
+
+                        draw();
+                        self.playMoveSound();
+                        // Determines whose turn it is
+                        if (whiteToMove) {
+                            whiteToMove = false;
+                        }else{
+                            whiteToMove = true;
+                        }
+                        
+                        console.log("TargetTileVal =", targetTileVal);
                         self.playMove(piece, piece.tile, toTile);
-                        // Collision for taking pieces
-                        // if (!(piece.tile.isEmpty)) {
-                        //     //TODO: Remove the piece that is on the board and keep the piece we have just placed
-                            
-                        // }
+                        // Remove pieces that have been taken from the board
+
+                        // If there is a piece on the target tile and if its not the same colour then we can capture
+                        if (targetTileVal != 0) {                            
+                            // If we dont have else draw() then when we capture on blacks turn white needs to move before the piece is removed
+                            if (whiteToMove) {
+                                draw();
+                                self.playCaptureSound();
+                            } 
+                            else {
+                                draw();
+                                self.playCaptureSound();
+                            }
+                        }
+                        
                     }else {
                         piece.x = startTileX;
                         piece.y = startTileY;
-                        draw(startTileX, startTileY);
+                        draw();
                     }
                 }
             }
@@ -225,6 +282,11 @@ class Move {
         } 
     }
 
+    removePiece(pieceToRemove) {
+        const ctx = canvas.getContext("2d");
+
+    }
+
 /**
  * Takes in the piece we are moving and when placed down will check what tile 
  * is closest to the piece so we can adjust where it is placed
@@ -257,7 +319,7 @@ class Move {
         for (let move of validMoves) {
             ctx.lineWidth = 5;
             ctx.strokeStyle = "black";
-            ctx.strokeRect(move.screenX, move.screenY, 100, 100);
+            ctx.strokeRect(move.screenX, move.screenY, 97, 99);
         } 
     }
 
