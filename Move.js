@@ -1,7 +1,7 @@
 import {Board, BOARD, canvas, pieces, table} from "./modules/board.js";
 import {bishop, Piece, wP} from "./modules/Piece.js";
 import {Tile} from "./modules/Tile.js";
-// import {Game} from "./Game.js";
+import {Rules} from "./modules/Rules.js";
 
 
 
@@ -11,6 +11,7 @@ class Move {
         this.board = new Board();
         this.tile = new Tile();
         this.piece = new Piece();
+        this.rules = new Rules();
         // this.game = new Game();
     }
 
@@ -43,12 +44,10 @@ class Move {
         function draw(newX, newY) {
             // Draw the board
             self.board.drawBoard();
-            // Get all the values from the hashmap
-            let values = table.values();
+            let pieceMap = getPieceMap(table);
+
             // redraw each piece in the pieces[] array
-            for (let piece of values) {
-                // If we are dealing with 0's or undefined then move to the next value in the map
-                if (piece === undefined) continue;
+            for (let piece of pieceMap.values()) {
                 // if the piece has an image and has NOT moved coords then draw it onto the canvas with the same coords
                 if (piece.x != newX && piece.image || piece.y != newY && piece.image) {
                     ctx.drawImage(piece.image, piece.x, piece.y);
@@ -71,11 +70,13 @@ class Move {
             let mx = parseInt(e.clientX - offsetX);
             let my = parseInt(e.clientY - offsetY);
 
-            let values = table.values();
             // test each rect to see if mouse is inside
             dragok = false;
-            for (let piece of values) {
-                if (piece === undefined) continue;
+            // We get the piece map so we are only dealing with a map that has a value for every key, this saves us from having to deal with 0 values or undefined
+            let pieceMap = getPieceMap(table);
+            
+            for (let piece of pieceMap.values()) {
+                // if (piece === undefined) continue;
                 // If the mouse is inside the piece when we click then set dragging properties to be true
                 if (mx > piece.x && mx < piece.x + piece.width && my > piece.y && my < piece.y + piece.height) {
                     // if yes, set that pieces isDragging=true
@@ -94,7 +95,6 @@ class Move {
                             } else {
                                 self.drawValid(piece)
                                 }
-                        
                     }
                 }
             }
@@ -117,9 +117,10 @@ class Move {
 
             // clear all the dragging flags
             dragok = false;
-            for (let piece of values) {
-                if (piece === undefined) break;
 
+            let pieceMap = getPieceMap(table);
+
+            for (let piece of pieceMap.values()) {
                 if (piece.isDragging) {
                     piece.isDragging = false;
 
@@ -142,11 +143,11 @@ class Move {
                             target = f.filter(t => {return t.screenX == closest.screenX && t.screenY == closest.screenY})
                             // console.log("This is the target, ", target);
                         }
-                        // self.playMove(piece, target);
+                        self.playMove(piece, target);
 
                         // Collision for taking pieces
                         if (!(piece.tile.isEmpty)) {
-                            // Remove the piece that is on the board and keep the piece we have just placed
+                            //TODO: Remove the piece that is on the board and keep the piece we have just placed
                             
                         }
                     }
@@ -174,24 +175,20 @@ class Move {
                 let dy = my - startY;
 
                 let pieceMoves;
-                let values = table.values();
+                let pieceMap = getPieceMap(table);
 
                 // move each piece that isDragging is true for
                 // by the distance the mouse has moved
                 // since the last mousemove
-                for (let piece of values) {
-                    if (piece === undefined) continue;
-
+                for (let piece of pieceMap.values()) {
                     if (piece.isDragging) {
                         piece.x += dx;
                         piece.y += dy;
-
                         pieceMoves = piece;
                     }
                 }
                 // redraw the scene with any updates to the piece positions
                 draw();
-// TODO: Think of a better way to do this
                 // Draws the valid moves for the piece we are moving
                 self.drawValid(pieceMoves);
 
@@ -203,7 +200,26 @@ class Move {
     }
 
 /**
- * Takes in the piece we are moving and when placed down will check what tile is closest to the piece so we can adjust where it is placed
+ * Gets a map of tiles(keys) and pieces(values). This is different from our
+ * main table map as it only includes tiles that have pieces on them.
+ * 
+ * @param {Map} map the hashmap of tile piece pairs 
+ * @returns a set containing all pieces on the table
+ */
+    // getPieceMap(map) {
+    //     let pieceMap = new Map();
+    //     for (let i = 0; i < map.size; i++) {
+    //         let entry = Array.from(map.keys())[i];
+    //         if (map.get(entry) != 0) {
+    //             pieceMap.set(entry, map.get(entry));
+    //         }
+    //     }
+    //     return pieceMap;
+    // }
+
+/**
+ * Takes in the piece we are moving and when placed down will check what tile 
+ * is closest to the piece so we can adjust where it is placed
  * 
  * 
  * @param {Piece} piece the current piece we are moving 
@@ -224,31 +240,18 @@ class Move {
 /**
  * This method will take in a given piece on the board and highlight or show all the available moves for it.
  * 
- * TODO: Look at if this is the correct way to create a new game object as it will call a new game every time we pick up a piece
- * 
- * 
- * 
  * @param {Piece} piece the given piece that we need to draw available moves for on the board
  */
     drawValid(piece) {
         const ctx = canvas.getContext("2d");
-
-
-        // this.game = new Game();
-
         let validMoves = new Set();
         validMoves = this.getPossibleMoves(piece);
         // console.log("valid moves: ", validMoves);
         for (let move of validMoves) {
-            // ctx.fillStyle = "red";
-            // ctx.fillRect(move.screenX, move.screenY, 100, 100);
             ctx.lineWidth = 5;
-            ctx.strokeStyle = "green";
+            ctx.strokeStyle = "black";
             ctx.strokeRect(move.screenX, move.screenY, 100, 100);
-           
-            
-        }
-        
+        } 
     }
 
     /**
@@ -263,34 +266,13 @@ class Move {
     @returns  a set of all possible moves for a given piece
 
     **/ 
-    // Possibly move this to Move.js
     getPossibleMoves(piece) {
 
         let moveSet = new Set();
+        // Create a new rules object and pass in the piece that we are finding rules for
+    
+        this.rules.getPieceRules(piece);
 
-        if (piece.type == "pawn") {
-
-            // moveSet.add(pawnRules(piece));
-
-
-
-    //             let tile = piece.tile;
-    //             // console.log("current tile: ", tile);
-    //             // Using _y here to ensure that we dont change the property as there is no setter it will give an error if the property is changed
-    //             if (piece.tile._y == 2) {
-
-    // // TODO: Look at how to make this dynamic and not hard coded with the + 1 and + 2 -> probably going to need maths to find a formula for the moves for each piece 
-    //                 for (let i = 0; i < BOARD.length; i++) {
-    //                     for (let j = 0; j < BOARD[0].length; j++) {
-    //                         if (BOARD[i][j] == tile) {
-    //                             moveSet.add(BOARD[i][j + 1]);
-    //                             moveSet.add(BOARD[i][j + 2]);
-    //                             // console.log("We just added moves: ", moveSet, " for piece: ", piece.p);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-        }
         return moveSet;
     }
 
@@ -302,25 +284,11 @@ class Move {
      * @param {Piece} piece the piece we are moving from one tile to another 
      * @param {Tile} target the target tile we are moving our piece to
     */
-    //  playMove(piece, target) {
-    //     let startTile = piece.getTile;
-
+   // TODO: Implement execute move in our map
+     playMove(piece, target) {
         
 
-    //     console.log("Start tile before any changes: ", piece.tile);
-
-    //     piece._isEmpty = true;; // Set the tile we have moved from to be true
-
-    //     target._isEmpty = false; // Setting the target tile to having a piece on it
-
-    //     piece._tile = target; // Update our piece to be on our new tile
-
-    //      console.log("Target tile after changes: ", target);
-    //      console.log("Start tile after changes: ", piece.tile);
-    //      console.log("This is our piece we have moved: ", piece);
-    //      console.log("to tile: ", piece.tile);
-
-    // }
+    }
 
 
     run() {
@@ -330,6 +298,7 @@ class Move {
         this.board.createBoardHash();
         this.board.populateHash();
         this.movePieceUI();
+        getPieceMap(table);
     }
 
 
@@ -346,10 +315,32 @@ class Move {
 
 }
 
+/**
+ * Gets a map of tiles(keys) and pieces(values). This is different from our
+ * main table map as it only includes tiles that have pieces on them.
+ * We keep this as a function because we need to use it in our Rules class, and we cannot instantiate a new move in rules and have a new rules in move (This could probably be avoided entirely by just making rules a function and not a class but I'm keeping everything in classes for this)
+ * 
+ * @param {Map} map the hashmap of tile piece pairs 
+ * @returns a set containing all pieces on the table
+ */
+function getPieceMap(map) {
+    let pieceMap = new Map();
+    for (let i = 0; i < map.size; i++) {
+        let entry = Array.from(map.keys())[i];
+        if (map.get(entry) != 0) {
+            pieceMap.set(entry, map.get(entry));
+        }
+    }
+    return pieceMap;
+}
+
+
 const start = new Move();
 
 start.run();
 
 
 
-export {Move};
+
+
+export {Move, getPieceMap};
