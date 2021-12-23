@@ -1,15 +1,20 @@
 import {Tile} from "./modules/Tile.js";
 import {Board, FILE, RANK, BOARD, pieces} from "./modules/board.js";
 import {Piece} from "./modules/Piece.js";
-import {Move} from "./modules/Move.js";
+import {Move} from "./Move.js";
+import {pawnRules, Rules} from "./modules/Rules.js";
 
 // TODO: Move this to be a module and the Move.js file to be the main file as we need to call to our "Rules" when we make moves in the UI
 
+// Rename this to rules
+// Potentially remove the class from this and use functions
+// We can then reference these functions later in another file
 class Game {
     constructor() {
         this.board = new Board();
         this.move = new Move();
         this.piece = new Piece();
+        this.rules = new Rules();
 
         let isWhiteCheck = false;
         let isBlackCheck = false;
@@ -27,27 +32,34 @@ class Game {
     @returns  a set of all possible moves for a given piece
 
 **/ 
+// Possibly move this to Move.js
  getPossibleMoves(piece) {
 
         let moveSet = new Set();
 
         if (piece.type == "pawn") {
-            let tile = piece.tile;
-            // console.log("current tile: ", tile);
-            // Using _y here to ensure that we dont change the property as there is no setter it will give an error if the property is changed
-            if (piece.tile._y == 2) {
 
-// TODO: Look at how to make this dynamic and not hard coded with the + 1 and + 2 -> probably going to need maths to find a formula for the moves for each piece 
-                for (let i = 0; i < BOARD.length; i++) {
-                    for (let j = 0; j < BOARD[0].length; j++) {
-                        if (BOARD[i][j] == tile) {
-                            moveSet.add(BOARD[i][j + 1]);
-                            moveSet.add(BOARD[i][j + 2]);
-                            // console.log("We just added moves: ", moveSet, " for piece: ", piece.p);
-                        }
-                    }
-                }
-            }
+            moveSet.add(pawnRules(piece));
+
+            console.log("This is our current move list: ", moveSet);
+
+
+//             let tile = piece.tile;
+//             // console.log("current tile: ", tile);
+//             // Using _y here to ensure that we dont change the property as there is no setter it will give an error if the property is changed
+//             if (piece.tile._y == 2) {
+
+// // TODO: Look at how to make this dynamic and not hard coded with the + 1 and + 2 -> probably going to need maths to find a formula for the moves for each piece 
+//                 for (let i = 0; i < BOARD.length; i++) {
+//                     for (let j = 0; j < BOARD[0].length; j++) {
+//                         if (BOARD[i][j] == tile) {
+//                             moveSet.add(BOARD[i][j + 1]);
+//                             moveSet.add(BOARD[i][j + 2]);
+//                             // console.log("We just added moves: ", moveSet, " for piece: ", piece.p);
+//                         }
+//                     }
+//                 }
+//             }
         }
         return moveSet;
     }
@@ -89,9 +101,8 @@ class Game {
         this.board.initBoard();
         this.board.populate();
         this.move.movePieceUI();
-
+        this.rules.createBoardHash();
         
-
         // this.getPossibleMoves(pieces[5]);
 
         // console.log("This is the pieces array: ", pieces);
