@@ -1,7 +1,8 @@
-import {Board, BOARD, canvas, pieces} from "./board.js";
-import {bishop, Piece, wP} from "./Piece.js";
-import {Tile} from "./Tile.js";
-import {Game} from "../Game.js";
+import {Board, BOARD, canvas, pieces, table} from "./modules/board.js";
+import {bishop, Piece, wP} from "./modules/Piece.js";
+import {Tile} from "./modules/Tile.js";
+import {Rules} from "./modules/Rules.js";
+
 
 
 
@@ -10,18 +11,13 @@ class Move {
         this.board = new Board();
         this.tile = new Tile();
         this.piece = new Piece();
+        this.rules = new Rules();
         // this.game = new Game();
     }
 
     // Moves a piece on the canvas by listening to 3 mouse events: mousedown, mouseup and mousemove
     movePieceUI() {
         
-        canvas.onmousedown = myDown;
-        canvas.onmouseup = myUp;
-        canvas.onmousemove = myMove;
-
-
-
         // const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
@@ -48,10 +44,10 @@ class Move {
         function draw(newX, newY) {
             // Draw the board
             self.board.drawBoard();
+            let pieceMap = getPieceMap(table);
 
             // redraw each piece in the pieces[] array
-            for (let i = 0; i < pieces.length; i++) {
-                let piece = pieces[i];
+            for (let piece of pieceMap.values()) {
                 // if the piece has an image and has NOT moved coords then draw it onto the canvas with the same coords
                 if (piece.x != newX && piece.image || piece.y != newY && piece.image) {
                     ctx.drawImage(piece.image, piece.x, piece.y);
@@ -76,8 +72,11 @@ class Move {
 
             // test each rect to see if mouse is inside
             dragok = false;
-            for (let i = 0; i < pieces.length; i++) {
-                let piece = pieces[i];
+            // We get the piece map so we are only dealing with a map that has a value for every key, this saves us from having to deal with 0 values or undefined
+            let pieceMap = getPieceMap(table);
+            
+            for (let piece of pieceMap.values()) {
+                // if (piece === undefined) continue;
                 // If the mouse is inside the piece when we click then set dragging properties to be true
                 if (mx > piece.x && mx < piece.x + piece.width && my > piece.y && my < piece.y + piece.height) {
                     // if yes, set that pieces isDragging=true
@@ -88,7 +87,7 @@ class Move {
                     let pieceType = piece._type;
                     let pieceColour = piece._isWhite;
                     console.log("I am a: ", pieceColour, " ", pieceType);
-
+                    // If the piece is a pawn then draw valid moves
                     switch(pieceType) {
                         case "pawn":
                             if (pieceColour) {
@@ -96,7 +95,6 @@ class Move {
                             } else {
                                 self.drawValid(piece)
                                 }
-                        
                     }
                 }
             }
@@ -112,28 +110,32 @@ class Move {
             e.preventDefault();
             e.stopPropagation();
 
-            this.game = new Game();
+            // this.game = new Game();
 
             let closest;
+            let values = table.values();
 
             // clear all the dragging flags
             dragok = false;
-            for (let i = 0; i < pieces.length; i++) {
-                if (pieces[i].isDragging) {
-                    pieces[i].isDragging = false;
+
+            let pieceMap = getPieceMap(table);
+
+            for (let piece of pieceMap.values()) {
+                if (piece.isDragging) {
+                    piece.isDragging = false;
 
                     // Calls to the method getClosestTile which will find the closest tile for the given piece
-                    closest = self.getClosestTile(pieces[i]);
+                    closest = self.getClosestTile(piece);
                     
                     // Saves the x and y for the piece we have moved
-                    const oldX = pieces[i].x;
-                    const oldY = pieces[i].y;
+                    const oldX = piece.x;
+                    const oldY = piece.y;
                     // Sets the new x and y for the piece we have moved
-                    pieces[i].x = closest.screenX;
-                    pieces[i].y = closest.screenY;
+                    piece.x = closest.screenX;
+                    piece.y = closest.screenY;
                     // If the piece has moved then draw the piece with the new x and y coords
-                    if (pieces[i].x != oldX || pieces[i].y != oldY) {
-                        draw(pieces[i].x, pieces[i].y);
+                    if (piece.x != oldX || piece.y != oldY) {
+                        draw(piece.x, piece.y);
                         self.playMoveSound();   
 
                         let target;
@@ -141,26 +143,14 @@ class Move {
                             target = f.filter(t => {return t.screenX == closest.screenX && t.screenY == closest.screenY})
                             // console.log("This is the target, ", target);
                         }
-                        this.game.playMove(pieces[i], target);
+                        self.playMove(piece, target);
 
-
-
-
-
-
-                        // // Loop through each element of our boards FILE and RANK 
-                        // for (let file of BOARD) {
-                        //     for (let rank of file) {
-                        //         // If the current tile is the same as the tile we have placed our piece on then set our target piece to be the current tile
-                        //         if (rank.screenX == closest.screenX && rank.screenY == closest.screenY) {
-                        //             this.game.playMove(pieces[i], rank);
-                        //             // console.log("this is our target tile: ", target);
-                        //         }
-                        //     }
-                        // }
-                        
+                        // Collision for taking pieces
+                        if (!(piece.tile.isEmpty)) {
+                            //TODO: Remove the piece that is on the board and keep the piece we have just placed
+                            
+                        }
                     }
-                    // console.log("This is the end X coord: ", pieces[i].x, " and the end Y coord: ", pieces[i].y);
                 }
             }
         }
@@ -185,24 +175,21 @@ class Move {
                 let dy = my - startY;
 
                 let pieceMoves;
+                let pieceMap = getPieceMap(table);
 
                 // move each piece that isDragging is true for
                 // by the distance the mouse has moved
                 // since the last mousemove
-                for (let i = 0; i < pieces.length; i++) {
-                    let piece = pieces[i];
+                for (let piece of pieceMap.values()) {
                     if (piece.isDragging) {
                         piece.x += dx;
                         piece.y += dy;
-
                         pieceMoves = piece;
-
-
                     }
                 }
                 // redraw the scene with any updates to the piece positions
                 draw();
-// TODO: Think of a better way to do this
+                // Draws the valid moves for the piece we are moving
                 self.drawValid(pieceMoves);
 
                 // reset the starting mouse position for the next mousemove
@@ -213,62 +200,107 @@ class Move {
     }
 
 /**
- * Takes in the piece we are moving and when placed down will check what tile is closest to the piece so we can adjust where it is placed
+ * Gets a map of tiles(keys) and pieces(values). This is different from our
+ * main table map as it only includes tiles that have pieces on them.
+ * 
+ * @param {Map} map the hashmap of tile piece pairs 
+ * @returns a set containing all pieces on the table
+ */
+    // getPieceMap(map) {
+    //     let pieceMap = new Map();
+    //     for (let i = 0; i < map.size; i++) {
+    //         let entry = Array.from(map.keys())[i];
+    //         if (map.get(entry) != 0) {
+    //             pieceMap.set(entry, map.get(entry));
+    //         }
+    //     }
+    //     return pieceMap;
+    // }
+
+/**
+ * Takes in the piece we are moving and when placed down will check what tile 
+ * is closest to the piece so we can adjust where it is placed
  * 
  * 
  * @param {Piece} piece the current piece we are moving 
  * @returns the tile that is closest to the piece we are moving
  */
     getClosestTile(piece) {
+        let tiles = table.keys();
 
-                
+        for (let tile of tiles) {
+            let difX = Math.abs(piece.x - tile.screenX);
+            let difY = Math.abs(piece.y - tile.screenY);
 
-        for (let i = 0; i < BOARD.length; i++) {
-            for (let j = 0; j < BOARD[0].length; j++) {
-
-                let diffX = Math.abs(piece.x - BOARD[i][j].screenX);
-                let diffY = Math.abs(piece.y - BOARD[i][j].screenY);
-
-                // console.log("newDiffX = ", newDiffX);
-                // console.log("current tile = ", BOARD[i][j]);
-
-                if (diffX <= 50 && diffY <= 50) {
-                    // console.log("We need to be on FILE: ", BOARD[i][j].x);
-                    // console.log("We need to be on RANK: ", BOARD[i][j].y);
-                    return BOARD[i][j];
-                }
+            if (difX <= 50 && difY <= 50) {
+                return tile;
             }
         }
     }
 /**
  * This method will take in a given piece on the board and highlight or show all the available moves for it.
  * 
- * TODO: Look at if this is the correct way to create a new game object as it will call a new game every time we pick up a piece
- * 
- * 
- * 
  * @param {Piece} piece the given piece that we need to draw available moves for on the board
  */
     drawValid(piece) {
         const ctx = canvas.getContext("2d");
-
-
-        this.game = new Game();
-
         let validMoves = new Set();
-        validMoves = this.game.getPossibleMoves(piece);
+        validMoves = this.getPossibleMoves(piece);
         // console.log("valid moves: ", validMoves);
         for (let move of validMoves) {
-            // ctx.fillStyle = "red";
-            // ctx.fillRect(move.screenX, move.screenY, 100, 100);
             ctx.lineWidth = 5;
-            ctx.strokeStyle = "green";
+            ctx.strokeStyle = "black";
             ctx.strokeRect(move.screenX, move.screenY, 100, 100);
-           
-            
-        }
-        
+        } 
     }
+
+    /**
+    Pawns can ONLY move +- 1 on the Y axis
+    Rooks can move +- 7 on X and Y axis
+
+     Gets all the possible moves for a given piece
+     TODO: Finish implementing this -> currently only hard coded the pawns first 2 moves
+
+
+    @param {Piece} piece a given piece on the chess board that we will return all the possible moves for
+    @returns  a set of all possible moves for a given piece
+
+    **/ 
+    getPossibleMoves(piece) {
+
+        let moveSet = new Set();
+        // Create a new rules object and pass in the piece that we are finding rules for
+    
+        this.rules.getPieceRules(piece);
+
+        return moveSet;
+    }
+
+    /** 
+     * Plays a move in our array board and updates all the associated values "behind the scenes".
+     * 
+     * 
+     * 
+     * @param {Piece} piece the piece we are moving from one tile to another 
+     * @param {Tile} target the target tile we are moving our piece to
+    */
+   // TODO: Implement execute move in our map
+     playMove(piece, target) {
+        
+
+    }
+
+
+    run() {
+        // this.board.initBoard();
+        // this.board.populate();
+        // this.movePieceUI();
+        this.board.createBoardHash();
+        this.board.populateHash();
+        this.movePieceUI();
+        getPieceMap(table);
+    }
+
 
 
     playMoveSound() {
@@ -283,6 +315,32 @@ class Move {
 
 }
 
+/**
+ * Gets a map of tiles(keys) and pieces(values). This is different from our
+ * main table map as it only includes tiles that have pieces on them.
+ * We keep this as a function because we need to use it in our Rules class, and we cannot instantiate a new move in rules and have a new rules in move (This could probably be avoided entirely by just making rules a function and not a class but I'm keeping everything in classes for this)
+ * 
+ * @param {Map} map the hashmap of tile piece pairs 
+ * @returns a set containing all pieces on the table
+ */
+function getPieceMap(map) {
+    let pieceMap = new Map();
+    for (let i = 0; i < map.size; i++) {
+        let entry = Array.from(map.keys())[i];
+        if (map.get(entry) != 0) {
+            pieceMap.set(entry, map.get(entry));
+        }
+    }
+    return pieceMap;
+}
 
 
-export {Move};
+const start = new Move();
+
+start.run();
+
+
+
+
+
+export {Move, getPieceMap};
