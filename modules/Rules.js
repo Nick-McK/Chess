@@ -43,59 +43,93 @@ class Rules {
     }
     
 
-    getLongMoves(startX, startY, endX, endY) {
-        let moves = new Set();
-        let startTile = this.getKey(startX, startY);
-        let endTile = this.getKey(endX, endY);
-        console.log("start", startTile);
-        console.log("end", endTile);
-
-        let startTileXCode = convertToCode(startTile.x);
-        let endTileXCode = convertToCode(endTile.x);
-
-        let difference = Math.abs(startTileXCode - endTileXCode);
-        console.log("difference:", difference);
-
-        let xCodeArray = [];
-        for (let key of table.keys()) {
-
-            if (Object.entries(key)[1][1] == startY && Object.entries(key)[0][1] != startX) {
-                moves.add(key);
-                console.log("xCodeArray:", moves);
-            }
-        }
-
-            // if (Object.entries(key)[0][1] == startX && Object.entries(key)[1][1] == startY) {
-            //     let TileLeft = this.getKey(startX, startY);
-            //     console.log("Tile to the left:", TileLeft);
-            // }
-        return moves;
-    }
-
-
-
-// TODO: Capturing, stop moving if there is another piece in front of us
+// TODO: Possible loop to do this(somehow), cause its a lot of code and quite messy
 /**
- * Defines the rules for pawns, both white and black -> only moving currently
+ * Defines the rules for pawns, both white and black. We stop moving if there is a piece in front of us. 
+ * We can also capture pieces if they are 1 tile diagonally from our current position (as long as it is 
+ * moving forward either up the ranks or down depending on what colour is moving)
  * @param {Piece} piece the piece that we wish to find out rules for
  * @returns a set of moves for the given piece
  */
     pawnRules(piece) {
         let moves = new Set();
+        let inFrontW = this.getKey(piece.tile.x, piece.tile.y + 1);
+        let twoInFrontW = this.getKey(piece.tile.x, piece.tile.y + 2);
+        let inFrontB = this.getKey(piece.tile.x, piece.tile.y - 1);
+        let twoInFrontB = this.getKey(piece.tile.x, piece.tile.y - 2)
+        let currentTileXCode = convertToCode(piece.tile.x);
+
+        let left = currentTileXCode - 1;
+        let right = currentTileXCode + 1
+        // Get the tile whose x is one left of our current tile(capture) and one right of our current tile(captureR) and y is 1 rank above our current tile
+        let capture = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y + 1);
+        let captureR = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y + 1);
+        // Get the tile whose x is one left and one right of our current tile(captureB and captureRB) and y is 1 rank below our current tile to deal with black
+        let captureB = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y - 1);
+        let captureRB = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
+
         if (piece.isWhite) {
             if (piece.tile.y == 2) {
-                moves.add(this.getKey(piece.tile.x, piece.tile.y + 1));
-                moves.add(this.getKey(piece.tile.x, piece.tile.y + 2));
-            }else {
-                moves.add(this.getKey(piece.tile.x, piece.tile.y + 1));
+                switch(inFrontW.isEmpty && twoInFrontW.isEmpty) {
+                case true:
+                    moves.add(inFrontW);
+                    moves.add(twoInFrontW);
+                case false:
+                    if (inFrontW.isEmpty) {
+                        moves.add(inFrontW);
+                    }
+                }
+            }else if (inFrontW.isEmpty){
+                moves.add(inFrontW);
             }
+
+            switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
+                case true:
+                    if (!capture.isEmpty) {
+                        moves.add(capture);
+                    }
+                    if (!captureR.isEmpty) {
+                        moves.add(captureR);
+                    }
+                case false:
+                    if (piece.tile.x == "A" && !captureR.isEmpty) {
+                        moves.add(captureR);
+                    }else if(piece.tile.x == "H" && !capture.isEmpty) {
+                        moves.add(capture);
+                    }
+            }
+
         }else if (!(piece.isWhite)) {
             if (piece.tile.y == 7) {
-                moves.add(this.getKey(piece.tile.x, piece.tile.y - 1));
-                moves.add(this.getKey(piece.tile.x, piece.tile.y - 2));
-            }else {
-                moves.add(this.getKey(piece.tile.x, piece.tile.y - 1));
+                switch(inFrontB.isEmpty && twoInFrontB.isEmpty) {
+                    case true:
+                        moves.add(inFrontB);
+                        moves.add(twoInFrontB);
+                    case false:
+                        if (inFrontB.isEmpty) {
+                            moves.add(inFrontB);
+                        }
+                }
+            }else if (inFrontB.isEmpty){
+                moves.add(inFrontB);
             }
+            switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
+                case true:
+                    if (!captureRB.isEmpty) {
+                        moves.add(captureRB);
+                    }
+                    if (!captureB.isEmpty) {
+                        moves.add(captureB);
+                    }
+                case false:
+                    if (piece.tile.x == "A" && !captureRB.isEmpty) {
+                        moves.add(captureRB);
+                    }else if(piece.tile.x == "H" && !captureB.isEmpty) {
+                        moves.add(captureB);
+                    }
+            }
+
+            
         }
         return moves;
     }
@@ -144,6 +178,8 @@ class Rules {
         let moves = new Set();
         for (let key of table.keys()) {
             if (diagTile(piece.tile, key)) {
+                // Need this otherwise bishops that are placed on the tile they are already on will count as a move and then can move twice.
+                if (piece.tile == key) continue;
                 moves.add(key);
             }
         }
@@ -197,6 +233,10 @@ function compareRank(startTile, endTile) {
 
 function convertToCode(tileX) {
     return tileX.charCodeAt();
+}
+
+function convertToChar(tileX) {
+    return String.fromCharCode(tileX);
 }
 
 
