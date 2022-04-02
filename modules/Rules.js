@@ -139,19 +139,74 @@ class Rules {
     /**
      * Looks at all the tiles in our map and if the tile has the same x or y value as the tile our piece is on then it is in a straight line with our tile and we can move rooks to it
      * 
+     * To remove the squares with pieces on them we split the loops into 2 one for x and another for y. If the tiles Y value is less than the piece we are moving's then we want to skip this square as there could be more moveable tiles after it
+     * If we see a tile that is ONLY the same colour as the piece we are moving then we can stop looping as we cannot move past that piece
+     * This is the same for black, but the break and continue statements are flipped to account for the flipped board
+     * 
      * @param {Piece} piece 
      * @returns a set of moves for the rooks
      */
     rookRules(piece) {
+        let tileSkip
         let moves = new Set();
+        let movesX = new Set();
+
         for (let key of table.keys()) {
-            if (Object.entries(key)[1][1] == piece.tile.y && Object.entries(key)[0][1] != piece.tile.x) {
-                moves.add(key);
-            }
+            // If the tile is on the same x axis as us and not our current tile then add to list
+            // Controls FILE
             if (Object.entries(key)[0][1] == piece.tile.x && Object.entries(key)[1][1] != piece.tile.y) {
+
+                if (piece.isWhite == true) {
+                    // IF a piece is behind us and its white then skip
+                    if (key.y < piece.tile.y && table.get(key).isWhite == piece.isWhite) {
+                        // moves.add(key);
+                        continue;
+                    }
+                    if (table.get(key).isWhite == piece.isWhite) {
+                        break;
+                    }
+                } 
+                if (piece.isWhite == false) {
+                    // IF a piece is behind us and its white then skip
+                    if (key.y < piece.tile.y && table.get(key).isWhite == piece.isWhite) {
+                        moves.clear();
+                        continue;
+                    }
+                    if (table.get(key).isWhite == piece.isWhite) {
+                        break;
+                    }
+                }
                 moves.add(key);
             }
         }
+        for (let key of table.keys()) {
+            // If the y value is the same as our current tile and is not the tile that our piece is on then add to moves
+            // Controls RANK
+            if (Object.entries(key)[1][1] == piece.tile.y && Object.entries(key)[0][1] != piece.tile.x) {
+                if (piece.isWhite == true) {
+                    // Get all the tiles after this piece
+                    if (key.x < piece.tile.x && table.get(key).isWhite == piece.isWhite) {
+                        movesX.clear();
+                        continue;
+                    }
+                }
+                if (piece.isWhite == false) {
+                    if (key.x < piece.tile.x && table.get(key).isWhite == piece.isWhite) {
+                        movesX.clear();
+                        continue;
+                    }
+                    
+                }
+                // Stop if we have not met above condition as we cannot move piece past another one of our own
+                if (table.get(key).isWhite == piece.isWhite) {
+                    break;
+                }
+                movesX.add(key);
+            }
+        }
+        movesX.forEach(move => {
+            return moves.add(move);
+        })
         return moves;
     }
 
@@ -160,8 +215,8 @@ class Rules {
         for (let key of table.keys()) {
             let fileDif = compareFile(piece.tile, key);
             let rankDif = compareRank(piece.tile, key);
-
-            if ((fileDif == 1 && rankDif == 2) || (fileDif == 2 && rankDif == 1)) {
+            // the && condition means we cant place a knight on top of another piece that is the same colour as us
+            if ((fileDif == 1 && rankDif == 2) && table.get(key).isWhite != piece.isWhite || (fileDif == 2 && rankDif == 1) && table.get(key).isWhite != piece.isWhite) {
                 moves.add(key);
             }
         }
@@ -175,14 +230,89 @@ class Rules {
  * @returns a set of moves for the bishop
  */
     bishopRules(piece) {
+        let prev;
         let moves = new Set();
+        let moves2 = new Set();
         for (let key of table.keys()) {
+
+            // if (key.y > piece.tile.y && key.x < piece.tile.x && table.get(key).isWhite == piece.isWhite) {
+                
+            // }
+
+
             if (diagTile(piece.tile, key)) {
                 // Need this otherwise bishops that are placed on the tile they are already on will count as a move and then can move twice.
                 if (piece.tile == key) continue;
+                
+                if (table.get(key).isWhite == piece.isWhite) {
+                    if (key.y > piece.tile.y && key.x < piece.tile.x) {
+                        moves.clear();
+                        continue;
+                    }
+
+                    if (key.y > piece.tile.y && key.x > piece.tile.x) {
+                        break;
+                        // continue;
+                    }
+                        
+
+
+                    continue;
+                }
+                console.log("not adding moves", key);
                 moves.add(key);
             }
         }
+        // Top left -> clear
+        // Bottom left -> clear
+        // Top right -> break
+        // bottom right -> break;
+
+        for (let tile of table.keys()) {
+            if (diagTile(piece.tile, tile)) {
+                if (table.get(tile).isWhite == piece.isWhite) {
+                    if (tile.y < piece.tile.y && tile.x < piece.tile.x) {
+                        movesToDelUp.clear();
+                        continue;;
+                    }
+                    if (tile.y < piece.tile.y && tile.x > piece.tile.x) {
+                        break;
+                    }
+                    continue;
+                }
+                console.log("adding move", tile);
+                moves2.add(tile)
+            }
+        }
+
+        moves2.forEach(move => {
+            return moves.add(move);
+        })
+        // for (let key of table.keys()) {
+        //     if (diagTile(piece.tile, key)) {
+        //         if (key.x > piece.tile.x && key.y < piece.tile.y && table.get(key).isWhite == piece.isWhite) {
+        //             // movesRight.clear();
+        //             continue;
+        //         }
+        //         if (key.x > piece.tile.x && key.y > piece.tile.y && table.get(key).isWhite == piece.isWhite) {
+        //             break;
+        //         }
+                
+        //         // if (piece.tile.isWhite == table.get(key).isWhite) {
+        //         //     break;
+        //         // }
+
+
+                
+        //         movesRight.add(key);
+        //     }
+        // }
+
+        // movesRight.forEach(move => {
+        //     return moves.add(move);
+        // })
+
+
         return moves;
     }
 /**
@@ -208,7 +338,7 @@ class Rules {
         for (let key of table.keys()) {
             let fileDif = compareFile(piece.tile, key);
             let rankDif = compareRank(piece.tile, key);
-            if ((fileDif == 1 && rankDif == 1) || (fileDif == 0 && rankDif == 1) || (fileDif == 1 && rankDif == 0)) {
+            if (((fileDif == 1 && rankDif == 1) || (fileDif == 0 && rankDif == 1) || (fileDif == 1 && rankDif == 0)) && table.get(key).isWhite != piece.isWhite) {
                 moves.add(key)
             }
         }
@@ -237,6 +367,26 @@ function convertToCode(tileX) {
 
 function convertToChar(tileX) {
     return String.fromCharCode(tileX);
+}
+// Checks if a piece is blocked in by other pieces
+function checkBlock(piece, moves) {
+    
+
+    return moves;
+
+
+}
+
+function getKey(x, y) {
+    if (typeof x == "string") {
+        let xCode = convertToCode(x);
+        for (let key of table.keys()) {
+            let objCode = convertToCode(Object.entries(key)[0][1])
+            if (objCode == xCode && Object.entries(key)[1][1] == y) {
+                return key;
+            }
+        }        
+    }
 }
 
 

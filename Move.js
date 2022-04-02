@@ -41,6 +41,7 @@ class Move {
         canvas.onmousedown = myDown;
         canvas.onmouseup = myUp;
         canvas.onmousemove = myMove;
+        
 
         // call to draw the scene
         draw();
@@ -86,58 +87,70 @@ class Move {
 
                     let pieceType = piece._type;
                     let pieceColour = piece._isWhite;
-                    // If the piece is a pawn then draw valid moves
-                    switch(pieceType) {
-                        case "pawn":
-                            if (pieceColour) {
-                                // pieceMoves = this.getPossibleMoves(piece);
-                                self.drawValid(piece);
-                                continue;
-                            }else {
-                                self.drawValid(piece);
-                                continue;
-                            }
-                        case "rook":
-                            if (pieceColour) {
-                                self.drawValid(piece);
-                                continue;
-                            }else {
-                                self.drawValid(piece);
-                                continue;
-                            }
-                        case "knight":
-                            if (pieceColour) {
-                                self.drawValid(piece);
-                                continue;
-                            }else {
-                                self.drawValid(piece);
-                                continue;
-                            }
-                        case "bishop":
-                            if (pieceColour) {
-                                self.drawValid(piece);
-                                continue;
-                            }else {
-                                self.drawValid(piece);
-                                continue;
-                            }
-                        case "queen":
-                            if (pieceColour) {
-                                self.drawValid(piece);
-                                continue;
-                            }else {
-                                self.drawValid(piece);
-                                continue;
-                            }
-                        case "king":
-                            if (pieceColour) {
-                                self.drawValid(piece);
-                                continue;
-                            }else {
-                                self.drawValid(piece);
-                                continue;
-                            }
+                    
+                    // Check the pieces colour, and then pass it to the draw valid method to draw its moves accordingly
+                    // If the piece is white then moves are drawn normally
+                    // If the piece is black then the moves are drawn inversly
+                    
+                    if (pieceColour) {
+                        self.drawValid(piece);
+                    } else {
+                        self.drawValid(piece);
                     }
+                        
+                    
+
+                    // switch(pieceType) {
+                    //     case "pawn":
+                    //         if (pieceColour) {
+                    //             // pieceMoves = this.getPossibleMoves(piece);
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }else {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }
+                    //     case "rook":
+                    //         if (pieceColour) {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }else {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }
+                    //     case "knight":
+                    //         if (pieceColour) {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }else {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }
+                    //     case "bishop":
+                    //         if (pieceColour) {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }else {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }
+                    //     case "queen":
+                    //         if (pieceColour) {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }else {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }
+                    //     case "king":
+                    //         if (pieceColour) {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }else {
+                    //             self.drawValid(piece);
+                    //             continue;
+                    //         }
+                    // }
                 }
             }
             
@@ -154,7 +167,6 @@ class Move {
             e.stopPropagation();
 
             let closest;
-
             // clear all the dragging flags
             dragok = false;
 
@@ -272,7 +284,7 @@ class Move {
                 // redraw the scene with any updates to the piece positions
                 draw();
                 // Draws the valid moves for the piece we are moving
-                // self.drawValid(pieceHeld);
+                self.drawValid(pieceHeld);
                 // console.log("PieceHeld: ", pieceHeld);
 
                 // reset the starting mouse position for the next mousemove
@@ -316,13 +328,15 @@ class Move {
         const ctx = canvas.getContext("2d");
         let validMoves = new Set();
         validMoves = this.getPossibleMoves(piece);
-        for (let move of validMoves) {
-            ctx.lineWidth = 5;
-            ctx.strokeStyle = "black";
-            ctx.strokeRect(move.screenX, move.screenY, 97, 99);
-        } 
+        // while (piece.isDragging == true) {
+            for (let move of validMoves) {
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = "black";
+                ctx.strokeRect(move.screenX, move.screenY, 97, 99);
+            } 
+        // }
     }
-
+    
     /**
     Pawns can ONLY move +- 1 on the Y axis
     Rooks can move +- 7 on X and Y axis

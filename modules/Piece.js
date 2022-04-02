@@ -37,7 +37,7 @@ bQ.src = "../assets/bQueen.svg",
 bK.src = "../assets/bKing.svg",
 bP.src = "../assets/bPawn.svg";
 
-
+// This is just bad, if we are going to use classes we should add each piece as its own class, then we can differentiate their rule sets and keep the basics the same with inheritance
 class Piece {
     constructor(x, y, width, height, image, tile, isWhite, type, isDragging) {
         this.x = x;
@@ -101,7 +101,7 @@ class Piece {
     }
 
 
-
+    
 }
 
 export {Piece, pawn, rook, knight, bishop, queen, king, wR, wN, wB, wK, wQ, wP, bR, bN, bB, bK, bQ, bP};
