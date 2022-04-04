@@ -213,8 +213,8 @@ class Rules {
     knightRules(piece) {
         let moves = new Set();
         for (let key of table.keys()) {
-            let fileDif = compareFile(piece.tile, key);
-            let rankDif = compareRank(piece.tile, key);
+            let fileDif = Math.abs(compareFile(piece.tile, key));
+            let rankDif = Math.abs(compareRank(piece.tile, key));
             // the && condition means we cant place a knight on top of another piece that is the same colour as us
             if ((fileDif == 1 && rankDif == 2) && table.get(key).isWhite != piece.isWhite || (fileDif == 2 && rankDif == 1) && table.get(key).isWhite != piece.isWhite) {
                 moves.add(key);
@@ -230,90 +230,60 @@ class Rules {
  * @returns a set of moves for the bishop
  */
     bishopRules(piece) {
-        let prev;
+        let prevWhite;
         let moves = new Set();
-        let moves2 = new Set();
+        let movesToCheck = new Set();
+        let removeMoves;
+        let keepMoves = new Set();
+        let finalMoves = new Set();
+
+            
+        // get diagonals of our piece
         for (let key of table.keys()) {
-
-            // if (key.y > piece.tile.y && key.x < piece.tile.x && table.get(key).isWhite == piece.isWhite) {
-                
-            // }
-
-
             if (diagTile(piece.tile, key)) {
-                // Need this otherwise bishops that are placed on the tile they are already on will count as a move and then can move twice.
-                if (piece.tile == key) continue;
-                
-                if (table.get(key).isWhite == piece.isWhite) {
-                    if (key.y > piece.tile.y && key.x < piece.tile.x) {
-                        moves.clear();
-                        continue;
-                    }
-
-                    if (key.y > piece.tile.y && key.x > piece.tile.x) {
-                        break;
-                        // continue;
-                    }
-                        
-
-
-                    continue;
-                }
-                console.log("not adding moves", key);
                 moves.add(key);
             }
         }
-        // Top left -> clear
-        // Bottom left -> clear
-        // Top right -> break
-        // bottom right -> break;
+        console.log("movomvomvomvomv", moves);
+        for (let move of moves) {
+            console.log("move", move)
+            // If a move is on the edge of the board
+            if (move.x == "A" || move.x == "H" || move.y == 1 || move.y == 8) {
+                console.log("checking this move", move);
+                movesToCheck = this.getTilesBetweenDiag(piece.tile, move);
+                console.log("movesToCheck", movesToCheck)
 
-        for (let tile of table.keys()) {
-            if (diagTile(piece.tile, tile)) {
-                if (table.get(tile).isWhite == piece.isWhite) {
-                    if (tile.y < piece.tile.y && tile.x < piece.tile.x) {
-                        movesToDelUp.clear();
-                        continue;;
-                    }
-                    if (tile.y < piece.tile.y && tile.x > piece.tile.x) {
+                for (let moveCheck of movesToCheck) {
+                    if (moveCheck === undefined) continue;
+                    console.log("moveCheck", moveCheck);
+                    console.log("pieceeeeeeeeeee", piece.isWhite);
+                    if (moveCheck != piece.tile && table.get(moveCheck).isWhite == piece.isWhite) {
+                        console.log("keep moves from this piece to bishop", moveCheck);
+                        keepMoves = this.getTilesBetweenDiag(piece.tile, moveCheck);
+                        console.log("keepMoves", keepMoves);
+                        if (keepMoves.has(moveCheck)) {
+                            keepMoves.delete(moveCheck);
+                            // finalMoves.clear();
+                            keepMoves.forEach(m => {
+                                return finalMoves.add(m);
+                            })
+                            console.log("finally", finalMoves);
+                        }
                         break;
                     }
-                    continue;
+                    finalMoves.add(moveCheck);
                 }
-                console.log("adding move", tile);
-                moves2.add(tile)
             }
         }
+       
+        
 
-        moves2.forEach(move => {
-            return moves.add(move);
-        })
-        // for (let key of table.keys()) {
-        //     if (diagTile(piece.tile, key)) {
-        //         if (key.x > piece.tile.x && key.y < piece.tile.y && table.get(key).isWhite == piece.isWhite) {
-        //             // movesRight.clear();
-        //             continue;
-        //         }
-        //         if (key.x > piece.tile.x && key.y > piece.tile.y && table.get(key).isWhite == piece.isWhite) {
-        //             break;
-        //         }
-                
-        //         // if (piece.tile.isWhite == table.get(key).isWhite) {
-        //         //     break;
-        //         // }
+        console.log("bvlah blah", finalMoves);
 
 
-                
-        //         movesRight.add(key);
-        //     }
-        // }
 
-        // movesRight.forEach(move => {
-        //     return moves.add(move);
-        // })
-
-
-        return moves;
+        // return keepMoves;
+        return finalMoves;
     }
 /**
  * Queens move using rook rules and bishop rules combined, so just call these two methods and merge the two sets together to get our new set.
@@ -336,29 +306,78 @@ class Rules {
     kingRules(piece) {
         let moves = new Set();
         for (let key of table.keys()) {
-            let fileDif = compareFile(piece.tile, key);
-            let rankDif = compareRank(piece.tile, key);
+            let fileDif = Math.abs(compareFile(piece.tile, key));
+            let rankDif = Math.abs(compareRank(piece.tile, key));
             if (((fileDif == 1 && rankDif == 1) || (fileDif == 0 && rankDif == 1) || (fileDif == 1 && rankDif == 0)) && table.get(key).isWhite != piece.isWhite) {
                 moves.add(key)
             }
         }
         return moves;
     }
+
+    // This only works for diagonals
+    getTilesBetweenDiag(startTile, endTile) {
+        let tileBetween = new Set();
+        
+        console.log("startTile", startTile);
+        console.log("endTile", endTile);
+
+        let rankDif = compareRank(startTile, endTile);
+        let fileDif = compareFile(startTile, endTile);
+        let loop = Math.abs(rankDif);
+
+        console.log("rankDif", rankDif);
+        console.log("fileDif", fileDif);
+
+
+        let startTileCode = convertToCode(startTile.x);
+
+        
+
+        if (rankDif < 0 && fileDif > 0) { // Going up left for white
+            // Loop for +1 to include the last tile
+            for (let i=1; i< loop+1;i++) {
+                tileBetween.add(
+                    getKey(convertToChar(startTileCode - i), startTile.y + i)
+                );
+            }
+        } else if (rankDif < 0 && fileDif < 0) { // Going up right for white
+            for (let i=1; i< loop+1;i++) {
+                tileBetween.add(
+                    getKey(convertToChar(startTileCode + i), startTile.y + i)
+                );
+            }
+        } else if (rankDif > 0 && fileDif < 0) { // back right for white
+            for (let i=1; i< loop + 1; i++) {
+                tileBetween.add(
+                    getKey(convertToChar(startTileCode + i), startTile.y - i)
+                );
+            }
+        } else if (rankDif > 0 && fileDif > 0) { // back left for white
+            for (let i=1; i< loop + 1; i++) {
+                tileBetween.add(
+                    getKey(convertToChar(startTileCode - i), startTile.y - i)
+                );
+            }
+        }
+        return tileBetween;
+    }
 }
 
 
 // Finds the difference between the rank and file of 2 tiles. If the difference between each of these is the same then its on a diagonal
 function diagTile(startTile, endTile) {
-    return compareRank(startTile, endTile) == compareFile(startTile, endTile);
+    return Math.abs(compareRank(startTile, endTile)) == Math.abs(compareFile(startTile, endTile));
 }
 
 // Compares the x(FILE) values of 2 tiles by converting them to numbers
 function compareFile(startTile, endTile) {
-    return Math.abs(startTile.x.charCodeAt() - endTile.x.charCodeAt());
+    return startTile.x.charCodeAt() - endTile.x.charCodeAt();
 }
 // Compares the y(RANK) values of 2 tiles
 function compareRank(startTile, endTile) {
-    return Math.abs(startTile.y - endTile.y);
+    // console.log(startTile.y, " - ", endTile.y);
+    return startTile.y - endTile.y;
 }
 
 function convertToCode(tileX) {
