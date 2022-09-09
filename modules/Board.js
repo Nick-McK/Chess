@@ -40,12 +40,14 @@ class Board {
             }
             
         }
+        
 
     }
 
 
     drawBoard() {
         const ctx = canvas.getContext("2d");
+        
         for (let i = 0; i < FILE.length; i++) {
             for (let j = 0; j < RANK.length; j++) {
                 // If the first number of i and j are either even/odd OR odd/even then make the square white
@@ -60,7 +62,20 @@ class Board {
                 }
             }
         }
+        
+        
     }
+
+    // initialDraw() {
+    //     const ctx = canvas.getContext("2d");
+    //     for (let x = 1; x < FILE.length+1; x++) {
+    //         for (let y = 1; y < RANK.length+1; y++) {
+    //             ctx.font = "18px kavivanar";
+    //             ctx.strokeText(FILE[x]+RANK[RANK.length-y], x * 100 , y * 100);
+    //         }
+            
+    //     }
+    // }
 
     populate() {
         
@@ -182,7 +197,7 @@ Set the isEmpty value to false for all the tiles we have put pieces on
                 }
             }
         }
-        console.log("Our hash implementation: ", table);
+        console.log("Starting Board: ", table);
     }
 
     populateHash() {
@@ -202,7 +217,6 @@ Set the isEmpty value to false for all the tiles we have put pieces on
                         continue;
                 }
             } else if (tile.x == "A") {
-                console.log("tileX: ", tile.x)
                 switch(tile.y) {
                     case 1:
                         table.set(tile, new Piece(0, (RANK.length - 1) * 100, 100, 100, wR, tile, true, rook, false));
@@ -274,7 +288,7 @@ Set the isEmpty value to false for all the tiles we have put pieces on
                         tile._isEmpty = false;
                         continue;
                     case 8:
-                        table.set(tile, new Piece(500, 0, 100, 100, bK, tile, false, bishop, false));
+                        table.set(tile, new Piece(500, 0, 100, 100, bB, tile, false, bishop, false));
                         tile._isEmpty = false;
                         continue;
                     default:
@@ -308,7 +322,7 @@ Set the isEmpty value to false for all the tiles we have put pieces on
                 }
             }
         }
-        console.log("========", table);
+        // console.log("========", table);
     }
 
 

@@ -2,7 +2,7 @@ import {BOARD, Board, FILE, RANK, table} from "./Board.js";
 import {Piece, wP, pawn, rook} from "./Piece.js";
 import {Tile} from "./Tile.js";
 import {Move, getPieceMap} from "../Move.js";
-
+// let bCheck = false, wCheck = false;
 class Rules {
     constructor() {
     }
@@ -22,6 +22,18 @@ class Rules {
             case "king":
                 return this.kingRules(piece);
         }
+    }
+
+    // Used to handle checkmate by getting all the moves our opponent can make and playing them.
+    getAllMoves(colour) {
+        let moves = new Set();
+        for (let value of table.values()) {
+            if (value == 0) continue;
+            if (value.isWhite == colour) {
+                moves.add(this.getPieceRules(value));
+            }
+        }
+        return moves;
     }
     /**
      * Gets a key with the given x and y values. We can use this to easily look up our target tile without having to write out loops everywhere
@@ -48,6 +60,8 @@ class Rules {
  * Defines the rules for pawns, both white and black. We stop moving if there is a piece in front of us. 
  * We can also capture pieces if they are 1 tile diagonally from our current position (as long as it is 
  * moving forward either up the ranks or down depending on what colour is moving)
+ * 
+ * TODO: enpassant
  * @param {Piece} piece the piece that we wish to find out rules for
  * @returns a set of moves for the given piece
  */
@@ -85,16 +99,16 @@ class Rules {
 
             switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
                 case true:
-                    if (!capture.isEmpty) {
+                    if (!capture.isEmpty && table.get(capture).isWhite != piece.isWhite) {
                         moves.add(capture);
                     }
-                    if (!captureR.isEmpty) {
+                    if (!captureR.isEmpty && table.get(captureR).isWhite != piece.isWhite) {
                         moves.add(captureR);
                     }
                 case false:
-                    if (piece.tile.x == "A" && !captureR.isEmpty) {
+                    if (piece.tile.x == "A" && !captureR.isEmpty && table.get(captureR).isWhite != piece.isWhite) {
                         moves.add(captureR);
-                    }else if(piece.tile.x == "H" && !capture.isEmpty) {
+                    }else if(piece.tile.x == "H" && !capture.isEmpty && table.get(capture).isWhite != piece.isWhite) {
                         moves.add(capture);
                     }
             }
@@ -133,7 +147,6 @@ class Rules {
         }
         return moves;
     }
-    // TODO: Implement rules for each piece type
 
     // We want to add every tile from the rooks starting tile to the end of the board as a move
     /**
@@ -143,71 +156,52 @@ class Rules {
      * If we see a tile that is ONLY the same colour as the piece we are moving then we can stop looping as we cannot move past that piece
      * This is the same for black, but the break and continue statements are flipped to account for the flipped board
      * 
+     * TODO: Castling
+     * 
      * @param {Piece} piece 
      * @returns a set of moves for the rooks
      */
     rookRules(piece) {
-        let tileSkip
         let moves = new Set();
-        let movesX = new Set();
+        let movesToCheck = new Set();
+        let keepMoves = new Set();
+        let finalMoves = new Set();
 
         for (let key of table.keys()) {
-            // If the tile is on the same x axis as us and not our current tile then add to list
-            // Controls FILE
-            if (Object.entries(key)[0][1] == piece.tile.x && Object.entries(key)[1][1] != piece.tile.y) {
-
-                if (piece.isWhite == true) {
-                    // IF a piece is behind us and its white then skip
-                    if (key.y < piece.tile.y && table.get(key).isWhite == piece.isWhite) {
-                        // moves.add(key);
-                        continue;
-                    }
-                    if (table.get(key).isWhite == piece.isWhite) {
-                        break;
-                    }
-                } 
-                if (piece.isWhite == false) {
-                    // IF a piece is behind us and its white then skip
-                    if (key.y < piece.tile.y && table.get(key).isWhite == piece.isWhite) {
-                        moves.clear();
-                        continue;
-                    }
-                    if (table.get(key).isWhite == piece.isWhite) {
-                        break;
-                    }
-                }
+            if (compareFile(piece.tile, key) == 0 || compareRank(piece.tile, key) == 0) {
                 moves.add(key);
             }
         }
-        for (let key of table.keys()) {
-            // If the y value is the same as our current tile and is not the tile that our piece is on then add to moves
-            // Controls RANK
-            if (Object.entries(key)[1][1] == piece.tile.y && Object.entries(key)[0][1] != piece.tile.x) {
-                if (piece.isWhite == true) {
-                    // Get all the tiles after this piece
-                    if (key.x < piece.tile.x && table.get(key).isWhite == piece.isWhite) {
-                        movesX.clear();
-                        continue;
+        for (let move of moves) {
+            if (move.x == "A" || move.x == "H" || move.y == 1 || move.y == 8) {
+                movesToCheck = this.getTilesBetween(piece.tile, move);
+
+                for (let moveCheck of movesToCheck) {
+                    if (moveCheck === undefined) continue;
+                    if (table.get(moveCheck).isWhite == piece.isWhite && moveCheck != piece.tile) {
+                        keepMoves = this.getTilesBetween(piece.tile, moveCheck);
+
+                        // Removing the move with a white piece on it
+                        if (keepMoves.has(moveCheck)) {
+                            keepMoves.delete(moveCheck);
+                            // Insert moves into returned moves set
+                            keepMoves.forEach(m => {
+                                return finalMoves.add(m);
+                            })
+                        }
+                        break;
                     }
-                }
-                if (piece.isWhite == false) {
-                    if (key.x < piece.tile.x && table.get(key).isWhite == piece.isWhite) {
-                        movesX.clear();
-                        continue;
+                    // If we find a different colour piece than the one we are moving then remove all moves after that
+                    if (moveCheck.isEmpty == false && table.get(moveCheck).isWhite != piece.isWhite) {
+                        finalMoves.add(moveCheck);
+                        break;
                     }
-                    
+                    // If there are no pieces between our piece and the edge then add this move
+                    finalMoves.add(moveCheck);
                 }
-                // Stop if we have not met above condition as we cannot move piece past another one of our own
-                if (table.get(key).isWhite == piece.isWhite) {
-                    break;
-                }
-                movesX.add(key);
             }
         }
-        movesX.forEach(move => {
-            return moves.add(move);
-        })
-        return moves;
+        return finalMoves;
     }
 
     knightRules(piece) {
@@ -225,6 +219,14 @@ class Rules {
 
 /**
  * Check to see if any of the tiles in the map are diagonals to the tile our piece is on. We do this by comparing the distance between the x and y of the two tiles and if they are the same then they must be diagonals
+ * 
+ * We then check to all of our diagonal moves, and if there is a move available on the edge of the board, then get all the moves between this tile and the piece we are moving.
+ * When we check these moves, if there is no other white piece on any of these tiles, then add all of these tiles to the moves list
+ * If there is a white piece on the one of these tiles then only add the moves that appear between this piece and the piece we are moving 
+ * 
+ * NOTE: THIS ONLY WORKS BECAUSE WE ARE CHECKING THE MOVES FROM THE PIECE TO THE EDGE OF THE BOARD NOT FROM THE EDGE TO THE PIECE
+ * eg: if we have a white bishop that can see to A6 and a pawn blocking on C4 then when we check the square A6, we start checking E2 then D3, then C4 and since there is a pawn on C4 we only include those squares then break out of the loop
+ * 
  * 
  * @param {Piece} piece 
  * @returns a set of moves for the bishop
@@ -244,45 +246,37 @@ class Rules {
                 moves.add(key);
             }
         }
-        console.log("movomvomvomvomv", moves);
         for (let move of moves) {
-            console.log("move", move)
             // If a move is on the edge of the board
             if (move.x == "A" || move.x == "H" || move.y == 1 || move.y == 8) {
-                console.log("checking this move", move);
                 movesToCheck = this.getTilesBetweenDiag(piece.tile, move);
-                console.log("movesToCheck", movesToCheck)
-
+                
                 for (let moveCheck of movesToCheck) {
+                    
                     if (moveCheck === undefined) continue;
-                    console.log("moveCheck", moveCheck);
-                    console.log("pieceeeeeeeeeee", piece.isWhite);
                     if (moveCheck != piece.tile && table.get(moveCheck).isWhite == piece.isWhite) {
-                        console.log("keep moves from this piece to bishop", moveCheck);
                         keepMoves = this.getTilesBetweenDiag(piece.tile, moveCheck);
-                        console.log("keepMoves", keepMoves);
+                        // Removing the move with a white piece on it
                         if (keepMoves.has(moveCheck)) {
                             keepMoves.delete(moveCheck);
-                            // finalMoves.clear();
+                            
+                            // Insert moves into returned moves set
                             keepMoves.forEach(m => {
                                 return finalMoves.add(m);
                             })
-                            console.log("finally", finalMoves);
                         }
                         break;
                     }
+                    // If we find a different colour piece than the one we are moving then remove all moves after that
+                    if (moveCheck.isEmpty == false && table.get(moveCheck).isWhite != piece.isWhite) {
+                        finalMoves.add(moveCheck);
+                        break;
+                    }
+                    // If there are no pieces between our piece and the edge then add this move
                     finalMoves.add(moveCheck);
                 }
             }
         }
-       
-        
-
-        console.log("bvlah blah", finalMoves);
-
-
-
-        // return keepMoves;
         return finalMoves;
     }
 /**
@@ -300,6 +294,8 @@ class Rules {
     }
 /**
  * Find all the tiles that are at most 1 away in any direction from our current tile and add it to the moves set.
+ * 
+ * TODO: Check + checkmate
  * @param {Piece} piece The piece we want to find moves for
  * @returns a set of moves for the given piece
  */
@@ -311,28 +307,31 @@ class Rules {
             if (((fileDif == 1 && rankDif == 1) || (fileDif == 0 && rankDif == 1) || (fileDif == 1 && rankDif == 0)) && table.get(key).isWhite != piece.isWhite) {
                 moves.add(key)
             }
+            // Remove all tiles that are being attacked from the kings move list
+            // MOve this to be global so we cannot move any piece if we are in check except to resolve the check
+            // let attackedTiles = new Set();
+            // attackedTiles = this.getAttackedTiles(piece.isWhite);
+
+            // for (let tile of attackedTiles) {
+            //     console.log("tiles", tile);
+            //     if (table.get(tile).type == "king") {
+            //         return check = true;
+            //     }
+            // }
+
+
         }
+        // console.log("checkStatus:", check);
         return moves;
     }
 
     // This only works for diagonals
     getTilesBetweenDiag(startTile, endTile) {
         let tileBetween = new Set();
-        
-        console.log("startTile", startTile);
-        console.log("endTile", endTile);
-
         let rankDif = compareRank(startTile, endTile);
         let fileDif = compareFile(startTile, endTile);
         let loop = Math.abs(rankDif);
-
-        console.log("rankDif", rankDif);
-        console.log("fileDif", fileDif);
-
-
         let startTileCode = convertToCode(startTile.x);
-
-        
 
         if (rankDif < 0 && fileDif > 0) { // Going up left for white
             // Loop for +1 to include the last tile
@@ -362,6 +361,125 @@ class Rules {
         }
         return tileBetween;
     }
+
+    getTilesBetween(startTile, endTile) {
+        let tileBetween = new Set();
+        let rankDif = compareRank(startTile, endTile);
+        let fileDif = compareFile(startTile, endTile);
+        let startTileCode = convertToCode(startTile.x);
+        let fileLoop = Math.abs(fileDif);
+        let rankLoop = Math.abs(rankDif);
+
+        if (rankDif == 0 && fileDif > 0) { // Moving left
+            for (let i = 1; i < fileLoop + 1; i++) {
+                tileBetween.add(
+                    getKey(convertToChar(startTileCode - i), startTile.y)
+                );
+            }
+        } else if (rankDif == 0 && fileDif < 0) { // Move right
+            for (let i = 1; i < fileLoop + 1; i++) {
+                tileBetween.add(
+                    getKey(convertToChar(startTileCode + i), startTile.y)
+                );
+            }
+        } else if (fileDif == 0 && rankDif < 0) { // Move up
+            for (let i = 1; i < rankLoop + 1; i++) {
+                tileBetween.add(
+                    getKey(startTile.x, startTile.y + i)
+                );
+            }
+        } else if (fileDif == 0 && rankDif > 0) { // Move down
+            for (let i = 1; i < rankLoop + 1; i++) {
+                tileBetween.add(
+                    getKey(startTile.x, startTile.y - i)
+                );
+            }
+        }
+        return tileBetween;
+    }
+    
+    /**
+     * Gets all the tiles that are being attacked on the board for a given colour so we can find checks
+     * 
+     * @param {Boolean} colour is the isWhite value for the piece we are moving 
+     */
+    getAttackedTiles(colour) {
+        let attackedTiles = new Set();
+        for (let piece of table.values()) {
+            if (piece != 0) {
+                if (piece.isWhite != colour && piece.type == "pawn") {
+                    let currentTileXCode = convertToCode(piece.tile.x);
+                    let capture = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y + 1);
+                    let captureR = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y + 1);
+                    // Get the tile whose x is one left and one right of our current tile(captureB and captureRB) and y is 1 rank below our current tile to deal with black
+                    let captureB = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y - 1);
+                    let captureRB = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
+
+                    if (piece.isWhite) {
+                        switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
+                            case true:
+                                if (capture != undefined) {
+                                    attackedTiles.add(capture);    
+                                }
+                                if (captureR != undefined) {
+                                    attackedTiles.add(captureR);
+                                }
+                            case false:
+                                if (captureR != undefined) {
+                                    attackedTiles.add(captureR);
+                                }
+                                if (capture != undefined) {
+                                    attackedTiles.add(capture);    
+                                }
+                                
+                        }
+                    } else if (!piece.isWhite) {
+                        switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
+                            case true:
+                                if (captureRB != undefined) {
+                                    attackedTiles.add(captureRB);
+                                }
+                                
+                                if (captureB != undefined) {
+                                    attackedTiles.add(captureB);    
+                                }
+                                
+                            case false:
+                                if (captureRB != undefined) {
+                                    attackedTiles.add(captureRB);
+                                }
+                            
+                                if (captureB != undefined) {
+                                    attackedTiles.add(captureB);    
+                                }
+                                
+                        }
+                    }
+                    continue;
+                } else if (piece.isWhite != colour) {
+                    attackedTiles.add(this.getPieceRules(piece));
+                }
+                // if (piece.isWhite != colour) {
+                //     attackedTiles.add(this.getPieceRules(piece));
+                // }
+            }
+        }
+        return attackedTiles;
+    }
+
+    /**
+     * Gets all the attacks that can be revealed by moving a piece
+     * Eg.
+     * King E4 pawn F4 and bQueen G4
+     * 
+     * In this case moving our F4 pawn would reveal a check on the white king so we
+     * cannot let the player move our F4 pawn
+     * 
+     * @param {Boolean} colour the isWhite value assigned to each piece to determine which colour they are (black or white)
+     */
+    getPotentialAttacks(colour) {
+        let potentialAttacks = new Set();
+    }
 }
 
 
@@ -386,14 +504,6 @@ function convertToCode(tileX) {
 
 function convertToChar(tileX) {
     return String.fromCharCode(tileX);
-}
-// Checks if a piece is blocked in by other pieces
-function checkBlock(piece, moves) {
-    
-
-    return moves;
-
-
 }
 
 function getKey(x, y) {

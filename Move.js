@@ -1,8 +1,9 @@
-import {Board, BOARD, canvas, pieces, table, updateTable} from "./modules/Board.js";
+import {Board, BOARD, canvas, pieces, table, updateTable, FILE, RANK} from "./modules/Board.js";
 import {bishop, Piece, wP} from "./modules/Piece.js";
 import {Tile} from "./modules/Tile.js";
 import {Rules} from "./modules/Rules.js";
 
+let tableCopy = new Map();
 
 class Move {
     constructor() {
@@ -11,8 +12,11 @@ class Move {
         this.piece = new Piece();
         this.rules = new Rules();
 
-        
-        // this.game = new Game();
+        this.wCheck = false;
+        this.bCheck = false;
+        this.MATE = false;
+        this.counter = 0;
+
     }
 
     // Moves a piece on the canvas by listening to 3 mouse events: mousedown, mouseup and mousemove
@@ -58,6 +62,8 @@ class Move {
                     ctx.drawImage(piece.image, piece.x, piece.y);
                 }
             }
+            
+            
         }
 // TODO: Move this to be its own method along with myUp and myMove
         // handle mousedown events
@@ -92,65 +98,19 @@ class Move {
                     // If the piece is white then moves are drawn normally
                     // If the piece is black then the moves are drawn inversly
                     
-                    if (pieceColour) {
-                        self.drawValid(piece);
-                    } else {
-                        self.drawValid(piece);
-                    }
-                        
-                    
-
-                    // switch(pieceType) {
-                    //     case "pawn":
-                    //         if (pieceColour) {
-                    //             // pieceMoves = this.getPossibleMoves(piece);
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }else {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }
-                    //     case "rook":
-                    //         if (pieceColour) {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }else {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }
-                    //     case "knight":
-                    //         if (pieceColour) {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }else {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }
-                    //     case "bishop":
-                    //         if (pieceColour) {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }else {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }
-                    //     case "queen":
-                    //         if (pieceColour) {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }else {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }
-                    //     case "king":
-                    //         if (pieceColour) {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }else {
-                    //             self.drawValid(piece);
-                    //             continue;
-                    //         }
+                    // if (pieceColour) {
+                    //     self.drawValid(piece);
+                    // } else {
+                    //     self.drawValid(piece);
                     // }
+                    
+                    if (piece.isWhite && self.bCheck) {
+                        self.getResolveCheckMoves(piece);
+                    } else if (!piece.isWhite && self.wCheck) {
+                        self.getResolveCheckMoves(piece);
+                    }
+
+                    self.drawValid(piece);
                 }
             }
             
@@ -214,13 +174,69 @@ class Move {
                     // If the the tile that we drop our piece on is in the possible move list for our piece, then continue with executing a move. If not then move the piece back to the starting tile
                     if ((self.getPossibleMoves(piece).has(closest))) {
 
-                        if (targetTileVal.isWhite == whiteToMove) {
-                            piece.x = startTileX;
-                            piece.y = startTileY;
+                        // if (targetTileVal.isWhite == whiteToMove) {
+                        //     piece.x = startTileX;
+                        //     piece.y = startTileY;
+                        //     draw();
+                        //     continue;
+                        // }
+
+                        // If we are in check dont let us move until we resolve check
+                        if (self.isCheck(piece.isWhite)) {
+
+
+                            console.log("resolve moves", self.getResolveCheckMoves(piece))
                             draw();
+
+                            if (self.getResolveCheckMoves(piece).size == 0) {
+                                console.log("THERE IS A CHECK THAT YOU NEED TO SOLVE!");
+                                piece.x = piece.tile.screenX;
+                                piece.y = piece.tile.screenY;
+                                draw();
+                                continue;
+                            } else {
+                                let resolveMoves = self.getResolveCheckMoves(piece);
+                                let pieceMoves = self.getPossibleMoves(piece);
+                                let playableMoves = new Set();
+
+                                for (let move of resolveMoves) {
+                                    for (let m of pieceMoves) {
+                                        if (move == m) {
+                                            playableMoves.add(move);
+                                        }
+                                    }
+                                }
+
+                                if (playableMoves.has(toTile)) {
+                                    self.playMove(piece, piece.tile, toTile);
+                                } else {
+                                    console.log("THERE IS A CHECK THAT YOU NEED TO SOLVE!");
+                                    piece.x = piece.tile.screenX;
+                                    piece.y = piece.tile.screenY;
+                                    draw();
+                                    continue;
+                                }
+                                
+                            }
+
+                            self.playMoveSound();
+                            // Determines whose turn it is
+                            if (whiteToMove) {
+                                whiteToMove = false;
+                            }else{
+                                whiteToMove = true;
+                            }
+   
+                            // piece.x = piece.tile.screenX;
+                            // piece.y = piece.tile.screenY;
+                            // draw();
                             continue;
                         }
 
+                        // if (self.getAllResolveCheckMoves(piece.isWhite).size == 0) {
+                        //     MATE = true;
+                        //     console.log("<----------------------->COLOUR:", !piece.isWhite, " HAS CHECKMATED");
+                        // }
                         draw();
                         self.playMoveSound();
                         // Determines whose turn it is
@@ -230,7 +246,6 @@ class Move {
                             whiteToMove = true;
                         }
                         
-                        console.log("TargetTileVal =", targetTileVal);
                         self.playMove(piece, piece.tile, toTile);
                         // Remove pieces that have been taken from the board
 
@@ -285,6 +300,7 @@ class Move {
                 draw();
                 // Draws the valid moves for the piece we are moving
                 self.drawValid(pieceHeld);
+                self.drawAttacked(pieceHeld);
                 // console.log("PieceHeld: ", pieceHeld);
 
                 // reset the starting mouse position for the next mousemove
@@ -328,6 +344,26 @@ class Move {
         const ctx = canvas.getContext("2d");
         let validMoves = new Set();
         validMoves = this.getPossibleMoves(piece);
+
+        if (this.bCheck || this.wCheck) {
+            let resolveMoves = this.getResolveCheckMoves(piece);
+            let playableMoves = new Set();
+
+            for (let move of resolveMoves) {
+                for (let m of validMoves) {
+                    if (move == m) {
+                        ctx.lineWidth = 5;
+                        ctx.strokeStyle = "black";
+                        ctx.strokeRect(move.screenX, move.screenY, 97, 99);
+                        playableMoves.add(move);
+                    }
+                }
+            }
+            return
+        }
+
+
+
         // while (piece.isDragging == true) {
             for (let move of validMoves) {
                 ctx.lineWidth = 5;
@@ -336,15 +372,148 @@ class Move {
             } 
         // }
     }
+
+    // Testing function to draw all the tiles that are under attack from both sides
+    drawAttacked(piece) {
+        const ctx = canvas.getContext("2d");
+        let attackedTiles = new Set();
+        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+
+        
+        for (let tiles of attackedTiles) {
+              
+            if (tiles instanceof Tile) {   
+                ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+                ctx.fillRect(tiles.screenX, tiles.screenY, 100,100);
+            } else {
+                for (let tile of tiles) {
+                    ctx.fillStyle = "rgba(255,0,0,0.2)";
+                    ctx.fillRect(tile.screenX, tile.screenY, 100,100);
+                
+                }
+            }
+        }
+    }
+
+    // Gets all the moves that resolve the check
+    // TODO: Currently its getting all attacked tiles even if they dont relate to the check
+    // Maybe get all the attacked tiles that relate to the king
+
+    // When we let go of a piece store the tile we place it on and then get all the tiles from that tile to the king - needs to be called when we set the check to true, or when we let go of a piece in myUp
+
+    // TODO: Need to make the kings resolving moves different, currently the king moves into a check and cannot move out of a check
+
+
+    // Get the tiles between the last piece held
+    getResolveCheckMoves(piece) {
+        let wK, bK;
+        let broke = false;
+
+        // Get king positions
+        for (let p of getPieceMap(table).values()) {
+            if (p.type == "king" && p.isWhite) {
+                wK = p.tile;
+            }
+            if (p.type == "king" && !p.isWhite) {
+                bK = p.tile;
+            }
+        }
+
+        let attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+
+        let resolveMoves = new Set();
+
+        let legalMoves = this.getPossibleMoves(piece);
+
+        let previousTile = piece.tile;
+
+        for (let move of legalMoves) {
+
+            console.log("PLAYING MOVE:", move, "broke status:", broke);
+
+            // Plays each move on the board - we use a different method from playMove because if we used play move we would loop forever in checks when we look for checkmate
+            this.playTestMove(piece, piece.tile, move);
+            let responses = this.getResponse(!piece.isWhite);
+
+            for (let res of responses) { 
+                // Set this to false so that we dont break out of the loop from a previous break
+                broke = false;
+                if (res.size == 0) continue;
+                for (let response of res) {
+                    console.log("response", response)
+                    // Ensures that the king does not abide by the same rules as the rest, means king cant move further into checks and has to move out
+                    if (piece.type == "king") {
+                        for (let tile of attackedTiles) {
+                            if (tile instanceof Tile) {
+                                if (tile == move) {
+                                    console.log("DELETING MOVE KING", move);
+                                    resolveMoves.delete(move);
+                                    broke = true;
+                                    break;
+                                } 
+                            } else {
+                                for (let t of tile) {
+                                    if (t == move) {
+                                        console.log("DELETEING KING MOVE ----------------------------------------", move);
+                                        resolveMoves.delete(move);
+                                        broke = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (broke) break;
+                        }
+                        if (broke) break;
+                        if (attackedTiles.has(move)) {
+                            console.log("DELETING MOVE KING", move);
+                            resolveMoves.delete(move);
+                            broke = true
+                            break;
+                        } else {
+                            if (!resolveMoves.has(move) && legalMoves.has(move)) {
+                                console.log("ADDING MOVE KING", move);
+                                resolveMoves.add(move);
+                            }
+                            
+                        }
+                    } else {
+                        if (response == bK || response == wK) {
+                            console.log("DELETING MOVE", move);
+                            resolveMoves.delete(move);
+                            broke = true;
+                            break;
+                        } else {
+                            if (!resolveMoves.has(move)) {
+                                console.log("ADDING MOVE", move);
+                                resolveMoves.add(move);
+                        
+                            }
+                        }
+                    }
+                    
+                }
+                // If we have broken out of the inner loop then we need to break out of the outer loop or we will just add the move again
+                // THINK OF A BETTER WAY TO DO THIS, THIS IS AWFUL
+                if (broke) {
+                    break;
+                }
+            }
+            // Reverts the table
+            this.unplayTestMove(piece, move, previousTile);
+        }
+
+        console.log("checked state", this.bCheck, " <- black, white ->", this.wCheck, "FINALLY CHECKMATE?", this.MATE);
+
+
+        return resolveMoves;
+
+    }
+
+    getResponse(colour) {
+        return this.rules.getAllMoves(colour)
+    }
     
     /**
-    Pawns can ONLY move +- 1 on the Y axis
-    Rooks can move +- 7 on X and Y axis
-
-     Gets all the possible moves for a given piece
-     TODO: Finish implementing this -> currently only hard coded the pawns first 2 moves
-
-
     @param {Piece} piece a given piece on the chess board that we will return all the possible moves for
     @returns  a set of all possible moves for a given piece
 
@@ -365,6 +534,9 @@ class Move {
     */
    // TODO: Implement execute move in our map
      playMove(piece, fromTile, toTile) {
+        
+        tableCopy = table; // Make a copy of the table so we can revert the move if we want
+
         if (!(fromTile == toTile)) {
             fromTile.isEmpty = true;
             piece.tile = toTile;
@@ -372,22 +544,406 @@ class Move {
             let cloneTable = new Map(table).set(toTile, piece) 
                                         .set(fromTile, 0);
             updateTable(cloneTable);
-            console.log("Moved from ", fromTile, " to ", toTile, ". Here is our new map: ", table);
+            // console.log("Moved from ", fromTile, " to ", toTile, ". Here is our new map: ", table);
         }
+        // This checks to see if we put the other player in check, so we can look for black's check on whites moves
+        let attackingTiles = new Set();
+        // This lets us check for a check resolution
+        let attackedTiles = new Set();
+        // By giving this the opposite colour of the piece we are moving, we can get the tiles that we are attacking, so we can check for any checks after a move and before the checked player can make any moves - IMPORTANT
+        attackingTiles = this.rules.getAttackedTiles(!piece.isWhite);
+        // console.log("attacked:" , attackedTiles);
+
+        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+
+        let pieceMap = getPieceMap(table)
+        let wK, bK;
+        // Finding the tile the king is on so we can calculate check
+        for (let piece of pieceMap.values()) {
+            if (piece.type == "king" && piece.isWhite) {
+                wK = piece.tile;
+            }
+            if (piece.type == "king" && !piece.isWhite) {
+                bK = piece.tile;
+            }
+        }
+
+        // TODO: Issue when a piece is preventing check and is then moved revealing a check, the move is valid currently as the check is not revealed until we check for whites attacking tiles
+
+        console.log("attacked tiles:", attackedTiles)
+
+        for (let tile of attackedTiles) {
+            // Create a variable that lets us know if we have found a check, if we have then set this to true and break out again
+            let broke = false;
+            if (tile instanceof Tile) {
+                // Checks to see if the tile in the attacked tiles list is the tile the king is on for black and white
+                if (tile != wK) {
+                    this.wCheck = false;
+                }
+                if (tile != bK && this.bCheck) {
+                    console.log("false 1", tile);
+                    this.bCheck = false;
+                }
+                // If the king is on these tiles then set the check for that colour to true and break out of the loop, dont need the broke variable since we are in the first loop
+                // Need to also check for the piece we are moving as we don't want
+                // Blacks attacked tiles to cause the white king to be in check
+                // This stops white's pieces from checking it's own king and black's 
+                // Checking their own king
+                if (!piece.isWhite && tile == bK) {
+                    this.bCheck = true;
+                    break;
+                }
+                if (piece.isWhite && tile == wK) {
+                    this.wCheck = true;
+                    break;
+                }
+            } else {
+                for (let t of tile) {
+                    
+                    if (t != wK) {
+                        this.wCheck = false;         
+                    }
+                    if (t != bK && this.bCheck) {
+                        console.log("false 2");
+                        this.bCheck = false;        
+                    }
+                    // Same as above but use the broke variable to let us know we have found a check and break out of the outer loop
+                    // Also uses the same check as above to stop white and black from
+                    // Checking their own pieces
+                    if (!piece.isWhite && t == bK) {
+                        this.bCheck = true;
+                        broke = true;
+                        break;
+                    }
+                    if (piece.isWhite && t == wK) {
+                        this.wCheck = true;
+                        broke = true;
+                        break;
+                    }
+                }
+            }
+            // If we have broke out of the inner loop then break out of the outer loop
+            if (broke) {
+                break;
+            }
+        }
+
+        console.log("ATTACKING TILES", attackingTiles);
+
+        // Used to check if when we move a piece and we are moving into a checking
+        // Position we want the opponent to know they are in check without having to
+        // Touch any of their pieces
+        for (let tile of attackingTiles) {
+            if (tile instanceof Tile) {
+                // Need to check the piece we are moving as well, if we don't then whites pieces can check white
+                if (!piece.isWhite && tile == wK) {
+                    this.wCheck = true;
+                }
+                if (piece.isWhite && tile == bK) {
+                    this.bCheck = true;
+                }
+            } else {
+                // This loops through any sets of tiles that may be in our move list
+                for (let t of tile) {
+                    // Implements the same check as above making sure white cannot
+                    // Check its own pieces and black its own pieces
+                    if (!piece.isWhite && t == wK) {
+                        this.wCheck = true;
+                    }
+                    if (piece.isWhite && t == bK) {
+                        this.bCheck = true;
+                    } 
+                 }
+            }    
+        }
+        // If either colour is in check then we check for a checkmate
+        if (this.wCheck || this.bCheck) {
+            // We want to find the opposite of the colour we have just moved
+            // If we move white into a check position on black then we want to check if
+            // Black has any moves to resolve the check
+            // If there are no moves (size 0) then we have checkmate!
+            if (this.getCheckMate(!piece.isWhite).size == 0) {
+                this.MATE = true;
+            }
+        }
+
+        console.log("black check state:", this.bCheck);
+        console.log("white check state:", this.wCheck);
+        console.log("CHECKMATE:", this.MATE);
     }
 
+    // MAYBE GET RID OF THE TRUE CHECK AS IF WE ARE USING THIS WE ARE ALREADY IN CHECK AND WE CAN ONLY MOVE OUT OF CHECK WE CANNOT DOUBLE CHECK
+    playTestMove(piece, fromTile, toTile) {
+        
+        tableCopy = table; // Make a copy of the table so we can revert the move if we want
+
+        if (!(fromTile == toTile)) {
+            fromTile.isEmpty = true;
+            piece.tile = toTile;
+            piece.tile.isEmpty = false;
+            let cloneTable = new Map(table).set(toTile, piece) 
+                                        .set(fromTile, 0);
+            updateTable(cloneTable);
+            // console.log("Moved from ", fromTile, " to ", toTile, ". Here is our new map: ", table);
+        }
+        // This checks to see if we put the other player in check, so we can look for black's check on whites moves
+        let attackingTiles = new Set();
+        // This lets us check for a check resolution
+        let attackedTiles = new Set();
+        // By giving this the opposite colour of the piece we are moving, we can get the tiles that we are attacking, so we can check for any checks after a move and before the checked player can make any moves - IMPORTANT
+        attackingTiles = this.rules.getAttackedTiles(!piece.isWhite);
+        // console.log("attacked:" , attackedTiles);
+
+        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+
+        let pieceMap = getPieceMap(table)
+        let wK, bK;
+        // Finding the tile the king is on so we can calculate check
+        for (let piece of pieceMap.values()) {
+            if (piece.type == "king" && piece.isWhite) {
+                wK = piece.tile;
+            }
+            if (piece.type == "king" && !piece.isWhite) {
+                bK = piece.tile;
+            }
+        }
+
+        // TODO: Issue when a piece is preventing check and is then moved revealing a check, the move is valid currently as the check is not revealed until we check for whites attacking tiles
+
+        console.log("attacked tiles:", attackedTiles)
+
+        for (let tile of attackedTiles) {
+            // Create a variable that lets us know if we have found a check, if we have then set this to true and break out again
+            let broke = false;
+            if (tile instanceof Tile) {
+                // Checks to see if the tile in the attacked tiles list is the tile the king is on for black and white
+                if (tile != wK) {
+                    this.wCheck = false;
+                }
+                if (tile != bK && this.bCheck) {
+                    console.log("false 1", tile);
+                    this.bCheck = false;
+                }
+                // If the king is on these tiles then set the check for that colour to true and break out of the loop, dont need the broke variable since we are in the first loop
+                // if (tile == bK) {
+                //     this.bCheck = true;
+                //     break;
+                // }
+                // if (tile == wK) {
+                //     this.wCheck = true;
+                //     break;
+                // }
+            } else {
+                for (let t of tile) {
+                    
+                    if (t != wK) {
+                        this.wCheck = false;         
+                    }
+                    if (t != bK && this.bCheck) {
+                        console.log("false 2");
+                        this.bCheck = false;        
+                    }
+                    // Same as above but use the broke variable to let us know we have found a check and break out of the outer loop
+                    // if (t == bK) {
+                    //     this.bCheck = true;
+                    //     broke = true;
+                    //     break;
+                    // }
+                    // if (t == wK) {
+                    //     this.wCheck = true;
+                    //     broke = true;
+                    //     break;
+                    // }
+                }
+            }
+            // If we have broke out of the inner loop then break out of the outer loop
+            if (broke) {
+                break;
+            }
+        }
+        // Dont even know if this is used anymore
+        // for (let tile of attackingTiles) {
+            
+        //     if (tile instanceof Tile) {
+        //         if (tile == wK) {
+        //             this.wCheck = true;
+        //         }
+        //         if (tile == bK) {
+        //             this.bCheck = true;
+        //         }
+        //     } else {
+        //         // This loops through any sets of tiles that may be in our move list
+        //         for (let t of tile) {
+        //             if (t == wK) {
+        //                 this.wCheck = true; 
+        //             }
+        //             if (t == bK) {
+        //                 this.bCheck = true;
+        //             } 
+        //          }
+        //     }    
+        // }
+
+        console.log("black check state:", this.bCheck);
+        console.log("white check state:", this.wCheck);
+        console.log("CHECKMATE:", this.MATE);
+    }
+
+    // Method that will let us undo a move which helps us look for checks
+    unplayTestMove(piece, fromTile, toTile) {
+        if (!(fromTile == toTile)) {
+            fromTile.isEmpty = true;
+            piece.tile = toTile;
+            piece.tile.isEmpty = false;
+            
+            updateTable(tableCopy);
+            console.log("table reverted");
+        }
+        // This checks to see if we put the other player in check, so we can look for black's check on whites moves
+        let attackingTiles = new Set();
+        // This lets us check for a check resolution
+        let attackedTiles = new Set();
+        // By giving this the opposite colour of the piece we are moving, we can get the tiles that we are attacking, so we can check for any checks after a move and before the checked player can make any moves - IMPORTANT
+        attackingTiles = this.rules.getAttackedTiles(!piece.isWhite);
+        // console.log("attacked:" , attackedTiles);
+
+        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+
+        let pieceMap = getPieceMap(table)
+        let wK, bK;
+        // Finding the tile the king is on so we can calculate check
+        for (let piece of pieceMap.values()) {
+            if (piece.type == "king" && piece.isWhite) {
+                wK = piece.tile;
+            }
+            if (piece.type == "king" && !piece.isWhite) {
+                bK = piece.tile;
+            }
+        }
+
+        // TODO: Issue when a piece is preventing check and is then moved revealing a check, the move is valid currently as the check is not revealed until we check for whites attacking tiles
+        
+
+        for (let tile of attackedTiles) {
+            // Create a variable that lets us know if we have found a check, if we have then set this to true and break out again
+            let broke = false;
+            if (tile instanceof Tile) {
+                // Checks to see if the tile in the attacked tiles list is the tile the king is on for black and white
+                if (tile != wK) {
+                    this.wCheck = false;
+                }
+                if (tile != bK) {
+                    this.bCheck = false;
+                }
+                // If the king is on these tiles then set the check for that colour to true and break out of the loop, dont need the broke variable since we are in the first loop
+                if (tile == bK) {
+                    this.bCheck = true;
+                    break;
+                }
+                if (tile == wK) {
+                    this.wCheck = true;
+                    break;
+                }
+            } else {
+                for (let t of tile) {
+                    
+                    if (t != wK) {
+                        this.wCheck = false;         
+                    }
+                    if (t != bK) {
+                        this.bCheck = false;        
+                    }
+                    // Same as above but use the broke variable to let us know we have found a check and break out of the outer loop
+                    if (t == bK) {
+                        this.bCheck = true;
+                        broke = true;
+                        break;
+                    }
+                    if (t == wK) {
+                        this.wCheck = true;
+                        broke = true;
+                        break;
+                    }
+                }
+            }
+            // If we have broke out of the inner loop then break out of the outer loop
+            if (broke) {
+                break;
+            }
+        }
+
+        // This is needed as if we click on a white piece when its blacks turn it will try play resolve moves, and uncheck black
+        for (let tile of attackingTiles) {
+            if (tile instanceof Tile) {
+                if (tile == wK) {
+                    this.wCheck = true;
+                }
+                if (tile == bK) {
+                    this.bCheck = true;
+                }
+            } else {
+                // This loops through any sets of tiles that may be in our move list
+                for (let t of tile) {
+                    if (t == wK) {
+                        this.wCheck = true;       
+                    }
+                    if (t == bK) {
+                        this.bCheck = true;        
+                    } 
+                 }
+            }    
+        }
+        console.log("Piece we are checking", piece);
+
+        console.log("black check state:", this.bCheck);
+        console.log("white check state:", this.wCheck);
+    }
+
+    getCheckMate(colour) {
+        let resolveMoves = this.getAllResolveCheckMoves(colour)
+
+        console.log("RESOLVING MOVES", resolveMoves, "FOR COLOUR", colour);
+
+        return resolveMoves;
+    }
+
+    getAllResolveCheckMoves(colour) {
+        let allMoves = new Set();
+
+
+        for (let value of table.values()) {
+            if (value == 0) continue;
+
+            console.log("VALUE", value, "value colour", value.isWhite,"colour we are checking", colour);
+            if (value.isWhite == colour) {
+                let getMoves = this.getResolveCheckMoves(value);
+                console.log("getMoves", getMoves);
+                getMoves.forEach(move => allMoves.add(move));
+            }
+        }
+        // console.log("HDSFJKHSDFJKHSDFJHSDF", allMoves);
+        return allMoves;
+    }
+
+    isCheck(colour) {
+        if (colour) {
+            return this.wCheck;
+        } else {
+            return this.bCheck;
+        }
+    }
 
     run() {
         // this.board.initBoard();
         // this.board.populate();
         // this.movePieceUI();
+        // this.board.initialDraw();
+        // this.board.drawBoard();
         this.board.createBoardHash();
         this.board.populateHash();
         this.movePieceUI();
         getPieceMap(table);
     }
-
-
 
     playMoveSound() {
         let audio = new Audio("../assets/move.mp3");
@@ -407,7 +963,7 @@ class Move {
  * We keep this as a function because we need to use it in our Rules class, and we cannot instantiate a new move in rules and have a new rules in move (This could probably be avoided entirely by just making rules a function and not a class but I'm keeping everything in classes for this)
  * 
  * @param {Map} map the hashmap of tile piece pairs 
- * @returns a set containing all pieces on the table
+ * @returns a map containing only all pieces on the table
  */
 function getPieceMap(map) {
     let pieceMap = new Map();
@@ -424,9 +980,5 @@ function getPieceMap(map) {
 const start = new Move();
 
 start.run();
-
-
-
-
 
 export {Move, getPieceMap};
