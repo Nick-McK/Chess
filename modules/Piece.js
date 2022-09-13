@@ -52,11 +52,11 @@ class Piece {
     }
 
 
-    get _tile() {
+    getTile() {
         return this.tile;
     }
 
-    set _tile(newTile) {
+    setTile(newTile) {
         this.tile = newTile;
     }
 

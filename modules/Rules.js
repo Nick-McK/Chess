@@ -477,8 +477,109 @@ class Rules {
      * 
      * @param {Boolean} colour the isWhite value assigned to each piece to determine which colour they are (black or white)
      */
-    getPotentialAttacks(colour) {
-        let potentialAttacks = new Set();
+
+
+    // TODO: Need to get the pinned piece and its resolution move, including all pinned pieces, not just the first one we find. We should also be able to move along the all the pieces in between the capture move and the king (moving along toward a pinning piece if we are a rook, bishop or queen)
+    getPin(piece) {
+        let king;
+        for (let p of getPieceMap(table).values()) {
+            if (p.type == "king" && p.isWhite == piece.isWhite) {
+                king = p;
+            }
+        }
+        let pinnedMap = new Map();
+        let finalMap = new Map();
+        // Gets the tiles in all sliding directions from the king
+        // Starting with right and moving clockwise
+        let pins = new Set([
+                    ...this.getTilesBetween(king.tile, getKey("H", king.tile.y)),
+                    ...this.getTilesBetweenDiag(king.tile, getKey("H", 1)),
+                    ...this.getTilesBetween(king.tile, getKey(king.tile.x, 1)),
+                    ...this.getTilesBetweenDiag(king.tile, getKey("A", 1)),
+                    ...this.getTilesBetween(king.tile, getKey("A", king.tile.y)),
+                    ...this.getTilesBetweenDiag(king.tile, getKey("A", 8)),
+                    ...this.getTilesBetween(king.tile, getKey(king.tile.x, 8)),
+                    ...this.getTilesBetweenDiag(king.tile, getKey("H", 8))]);
+
+        let sameColourCount = 0;
+        let directionChange = false;
+        
+        for (let tile of pins) {
+            if (tile === undefined) continue;
+
+            // Down right
+            if (compareRank(king.tile, tile) > 0 && compareFile(king.tile, tile) < 0 && !directionChange) {
+                // console.log("DOWN RIGHT");
+                sameColourCount = 0;
+                directionChange = true;
+                pinnedMap.clear();
+            } else if (compareRank(king.tile, tile) > 0 && compareFile(king.tile, tile) == 0 && directionChange) {
+                sameColourCount = 0;
+                directionChange = false;
+                pinnedMap.clear();
+                // console.log("DOWN");
+            } else if (compareRank(king.tile, tile) > 0 && compareFile(king.tile, tile) > 0 && !directionChange) {
+                sameColourCount = 0;
+                directionChange = true;
+                pinnedMap.clear();
+                // console.log("DOWN LEFT");
+            } else if (compareRank(king.tile, tile) == 0 && compareFile(king.tile, tile) > 0 && directionChange) {
+                sameColourCount = 0;
+                directionChange = false;
+                pinnedMap.clear();
+                // console.log("LEFT");
+            } else if (compareRank(king.tile, tile) < 0 && compareFile(king.tile, tile) > 0 && !directionChange) {
+                sameColourCount = 0;
+                directionChange = true;
+                pinnedMap.clear();
+                // console.log("UP LEFT");
+            } else if (compareRank(king.tile, tile) < 0 && compareFile(king.tile, tile) == 0 && directionChange) {
+                sameColourCount = 0;
+                directionChange = false;
+                pinnedMap.clear();
+                // console.log("UP");
+            } else if (compareRank(king.tile, tile) < 0 && compareFile(king.tile, tile) < 0 && !directionChange) {
+                sameColourCount = 0;
+                directionChange = true;
+                pinnedMap.clear();
+                // console.log("UP RIGHT");
+            }
+            // console.log("tile", tile);
+            if (!tile.isEmpty) {
+                if (table.get(tile).isWhite == piece.isWhite) {
+                    sameColourCount++;
+                    pinnedMap.set(table.get(tile));
+                }
+
+                if (((table.get(tile).type == "rook" && !diagTile(king.tile, tile)) || (table.get(tile).type == "bishop" && diagTile(king.tile, tile)) || (table.get(tile).type == "queen")) && table.get(tile).isWhite != piece.isWhite) {
+                    if (sameColourCount == 1) {
+                        // let cloneTable = new Map(pinnedMap).set(toTile, piece) 
+                        //                 .set(fromTile, 0);
+
+                        finalMap = new Map(pinnedMap).set(pinnedMap.keys().next().value, tile)
+                        // console.log(pinnedMap.keys().next().value);
+                    }
+                }
+
+
+
+
+                // If the piece is a bishop, rook or queen and is the opposite colour then we are pinned
+                // if ((table.get(tile).type == "rook" || table.get(tile).type == "bishop" || table.get(tile).type == "queen") && table.get(tile).isWhite != piece.isWhite) {
+                //     if (sameColourCount == 1) {
+                //         // let pinnedSet = new Set();
+                //         pinnedSet.add([tile, table.get(tile)]);
+                //         console.log("pinned set", pinnedSet);
+                //         return pinnedSet;
+                //     } else {
+                //         // let pinnedSet = new Set();
+                //         return pinnedSet;
+                //     }
+                // }
+            }
+        }
+        // console.log("PINNED MAP", finalMap)
+        return finalMap;
     }
 }
 
