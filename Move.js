@@ -583,16 +583,29 @@ class Move {
     getPossibleMoves(piece) {
 
         let possibleMoves = this.rules.getPieceRules(piece);
-        // let previousTile = piece.tile;
 
-        // for (let move of possibleMoves) {
-        //     this.playTestMove(piece, piece.tile, move);
-        //     if (this.isCheck(piece.isWhite)) {
-        //         possibleMoves.delete(move);
-        //     }
-        //     this.unplayTestMove(piece, move, previousTile);
-        // }
-
+        // Stops the king from moving into check
+        if (piece.type == "king") {
+            let attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+            console.log("attackedTiles", attackedTiles);
+            for (let move of possibleMoves) {
+                for (let tile of attackedTiles) {
+                    // If the tile is not in a set in the attackedTiles set then check if its legal
+                    if (tile instanceof Tile) {
+                        if (move == tile) {
+                            possibleMoves.delete(move);
+                        }
+                    // If the tile is in a set in attacked tiles then loop through the set then check if its legal
+                    } else {
+                        for (let tileSet of tile) {
+                            if (move == tileSet) {
+                                possibleMoves.delete(move);
+                            }
+                        }
+                    } 
+                }
+            }
+        }
         return possibleMoves;
     }
 
@@ -745,7 +758,7 @@ class Move {
     // MAYBE GET RID OF THE TRUE CHECK AS IF WE ARE USING THIS WE ARE ALREADY IN CHECK AND WE CAN ONLY MOVE OUT OF CHECK WE CANNOT DOUBLE CHECK
     playTestMove(piece, fromTile, toTile) {
         
-        copyTable = new Map(table); // Make a copy of the table so we can revert the move if we want
+        tableCopy = new Map(table); // Make a copy of the table so we can revert the move if we want
         if (!(fromTile == toTile)) {
             fromTile.isEmpty = true;
             console.log("SETTING TESTING TILE TO", toTile);
@@ -756,7 +769,7 @@ class Move {
             updateTable(cloneTable);
             console.log("TESTING FROM ", fromTile, " to ", toTile, ". Here is our new map: ", table);
             console.log("");
-            console.log("copyTable", copyTable);
+            console.log("tableCopy", tableCopy);
         }
         // This checks to see if we put the other player in check, so we can look for black's check on whites moves
         let attackingTiles = new Set();
@@ -871,7 +884,7 @@ class Move {
             // .set(fromTile, 0);
             // updateTable(cloneTable);
 
-            updateTable(copyTable);
+            updateTable(tableCopy);
             console.log("table reverted");
             console.log("reverted to ", fromTile, " to ", toTile, ". Here is our new map: ", table);
             
