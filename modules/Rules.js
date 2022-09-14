@@ -7,30 +7,30 @@ class Rules {
     constructor() {
     }
     
-    getPieceRules(piece) {
+    static getPieceRules(piece) {
         switch(piece.type) {
             case "pawn":
-                return this.pawnRules(piece); 
+                return Rules.pawnRules(piece); 
             case "rook":
-                return this.rookRules(piece);
+                return Rules.rookRules(piece);
             case "knight":
-                return this.knightRules(piece);
+                return Rules.knightRules(piece);
             case "bishop":
-                return this.bishopRules(piece);
+                return Rules.bishopRules(piece);
             case "queen":
-                return this.queenRules(piece);
+                return Rules.queenRules(piece);
             case "king":
-                return this.kingRules(piece);
+                return Rules.kingRules(piece);
         }
     }
 
     // Used to handle checkmate by getting all the moves our opponent can make and playing them.
-    getAllMoves(colour) {
+    static getAllMoves(colour) {
         let moves = new Set();
         for (let value of table.values()) {
             if (value == 0) continue;
             if (value.isWhite == colour) {
-                moves.add(this.getPieceRules(value));
+                moves.add(Rules.getPieceRules(value));
             }
         }
         return moves;
@@ -42,7 +42,7 @@ class Rules {
      * @param {Integer} y the y value of the tile that we want to find
      * @returns a tile object with the given x and y values. The x,y pair is unique so it will give a unique tile
      */
-    getKey(x, y) {
+    static getKey(x, y) {
         if (typeof x == "string") {
             let xCode = convertToCode(x);
             for (let key of table.keys()) {
@@ -65,22 +65,22 @@ class Rules {
  * @param {Piece} piece the piece that we wish to find out rules for
  * @returns a set of moves for the given piece
  */
-    pawnRules(piece) {
+    static pawnRules(piece) {
         let moves = new Set();
-        let inFrontW = this.getKey(piece.tile.x, piece.tile.y + 1);
-        let twoInFrontW = this.getKey(piece.tile.x, piece.tile.y + 2);
-        let inFrontB = this.getKey(piece.tile.x, piece.tile.y - 1);
-        let twoInFrontB = this.getKey(piece.tile.x, piece.tile.y - 2)
+        let inFrontW = Rules.getKey(piece.tile.x, piece.tile.y + 1);
+        let twoInFrontW = Rules.getKey(piece.tile.x, piece.tile.y + 2);
+        let inFrontB = Rules.getKey(piece.tile.x, piece.tile.y - 1);
+        let twoInFrontB = Rules.getKey(piece.tile.x, piece.tile.y - 2)
         let currentTileXCode = convertToCode(piece.tile.x);
 
         let left = currentTileXCode - 1;
         let right = currentTileXCode + 1
         // Get the tile whose x is one left of our current tile(capture) and one right of our current tile(captureR) and y is 1 rank above our current tile
-        let capture = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y + 1);
-        let captureR = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y + 1);
+        let capture = Rules.getKey(convertToChar(currentTileXCode - 1), piece.tile.y + 1);
+        let captureR = Rules.getKey(convertToChar(currentTileXCode + 1), piece.tile.y + 1);
         // Get the tile whose x is one left and one right of our current tile(captureB and captureRB) and y is 1 rank below our current tile to deal with black
-        let captureB = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y - 1);
-        let captureRB = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
+        let captureB = Rules.getKey(convertToChar(currentTileXCode - 1), piece.tile.y - 1);
+        let captureRB = Rules.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
 
         if (piece.isWhite) {
             if (piece.tile.y == 2) {
@@ -161,7 +161,7 @@ class Rules {
      * @param {Piece} piece 
      * @returns a set of moves for the rooks
      */
-    rookRules(piece) {
+     static rookRules(piece) {
         let moves = new Set();
         let movesToCheck = new Set();
         let keepMoves = new Set();
@@ -174,12 +174,12 @@ class Rules {
         }
         for (let move of moves) {
             if (move.x == "A" || move.x == "H" || move.y == 1 || move.y == 8) {
-                movesToCheck = this.getTilesBetween(piece.tile, move);
+                movesToCheck = Rules.getTilesBetween(piece.tile, move);
 
                 for (let moveCheck of movesToCheck) {
                     if (moveCheck === undefined) continue;
                     if (table.get(moveCheck).isWhite == piece.isWhite && moveCheck != piece.tile) {
-                        keepMoves = this.getTilesBetween(piece.tile, moveCheck);
+                        keepMoves = Rules.getTilesBetween(piece.tile, moveCheck);
 
                         // Removing the move with a white piece on it
                         if (keepMoves.has(moveCheck)) {
@@ -204,7 +204,7 @@ class Rules {
         return finalMoves;
     }
 
-    knightRules(piece) {
+    static knightRules(piece) {
         let moves = new Set();
         for (let key of table.keys()) {
             let fileDif = Math.abs(compareFile(piece.tile, key));
@@ -231,11 +231,9 @@ class Rules {
  * @param {Piece} piece 
  * @returns a set of moves for the bishop
  */
-    bishopRules(piece) {
-        let prevWhite;
+ static bishopRules(piece) {
         let moves = new Set();
         let movesToCheck = new Set();
-        let removeMoves;
         let keepMoves = new Set();
         let finalMoves = new Set();
 
@@ -249,13 +247,13 @@ class Rules {
         for (let move of moves) {
             // If a move is on the edge of the board
             if (move.x == "A" || move.x == "H" || move.y == 1 || move.y == 8) {
-                movesToCheck = this.getTilesBetweenDiag(piece.tile, move);
+                movesToCheck = Rules.getTilesBetweenDiag(piece.tile, move);
                 
                 for (let moveCheck of movesToCheck) {
                     
                     if (moveCheck === undefined) continue;
                     if (moveCheck != piece.tile && table.get(moveCheck).isWhite == piece.isWhite) {
-                        keepMoves = this.getTilesBetweenDiag(piece.tile, moveCheck);
+                        keepMoves = Rules.getTilesBetweenDiag(piece.tile, moveCheck);
                         // Removing the move with a white piece on it
                         if (keepMoves.has(moveCheck)) {
                             keepMoves.delete(moveCheck);
@@ -284,9 +282,9 @@ class Rules {
  * @param {Piece} piece The piece we want to find moves for
  * @returns a set of moves for the given piece
  */
-    queenRules(piece) {
-        let rookMoves = new Set(this.rookRules(piece));
-        let bishopMoves = new Set(this.bishopRules(piece));
+ static queenRules(piece) {
+        let rookMoves = new Set(Rules.rookRules(piece));
+        let bishopMoves = new Set(Rules.bishopRules(piece));
         let moves = new Set();
         rookMoves.forEach(move => moves.add(move));
         bishopMoves.forEach(move => moves.add(move));
@@ -299,7 +297,7 @@ class Rules {
  * @param {Piece} piece The piece we want to find moves for
  * @returns a set of moves for the given piece
  */
-    kingRules(piece) {
+ static kingRules(piece) {
         let moves = new Set();
         for (let key of table.keys()) {
             let fileDif = Math.abs(compareFile(piece.tile, key));
@@ -326,7 +324,7 @@ class Rules {
     }
 
     // This only works for diagonals
-    getTilesBetweenDiag(startTile, endTile) {
+    static getTilesBetweenDiag(startTile, endTile) {
         let tileBetween = new Set();
         let rankDif = compareRank(startTile, endTile);
         let fileDif = compareFile(startTile, endTile);
@@ -362,7 +360,7 @@ class Rules {
         return tileBetween;
     }
 
-    getTilesBetween(startTile, endTile) {
+    static getTilesBetween(startTile, endTile) {
         let tileBetween = new Set();
         let rankDif = compareRank(startTile, endTile);
         let fileDif = compareFile(startTile, endTile);
@@ -403,17 +401,17 @@ class Rules {
      * 
      * @param {Boolean} colour is the isWhite value for the piece we are moving 
      */
-    getAttackedTiles(colour) {
+     static getAttackedTiles(colour) {
         let attackedTiles = new Set();
         for (let piece of table.values()) {
             if (piece != 0) {
                 if (piece.isWhite != colour && piece.type == "pawn") {
                     let currentTileXCode = convertToCode(piece.tile.x);
-                    let capture = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y + 1);
-                    let captureR = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y + 1);
+                    let capture = Rules.getKey(convertToChar(currentTileXCode - 1), piece.tile.y + 1);
+                    let captureR = Rules.getKey(convertToChar(currentTileXCode + 1), piece.tile.y + 1);
                     // Get the tile whose x is one left and one right of our current tile(captureB and captureRB) and y is 1 rank below our current tile to deal with black
-                    let captureB = this.getKey(convertToChar(currentTileXCode - 1), piece.tile.y - 1);
-                    let captureRB = this.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
+                    let captureB = Rules.getKey(convertToChar(currentTileXCode - 1), piece.tile.y - 1);
+                    let captureRB = Rules.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
 
                     if (piece.isWhite) {
                         switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
@@ -457,7 +455,7 @@ class Rules {
                     }
                     continue;
                 } else if (piece.isWhite != colour) {
-                    attackedTiles.add(this.getPieceRules(piece));
+                    attackedTiles.add(Rules.getPieceRules(piece));
                 }
                 // if (piece.isWhite != colour) {
                 //     attackedTiles.add(this.getPieceRules(piece));
@@ -480,7 +478,7 @@ class Rules {
 
 
     // TODO: Need to get the pinned piece and its resolution move, including all pinned pieces, not just the first one we find. We should also be able to move along the all the pieces in between the capture move and the king (moving along toward a pinning piece if we are a rook, bishop or queen)
-    getPin(piece) {
+    static getPin(piece) {
         let king;
         for (let p of getPieceMap(table).values()) {
             if (p.type == "king" && p.isWhite == piece.isWhite) {
@@ -492,14 +490,14 @@ class Rules {
         // Gets the tiles in all sliding directions from the king
         // Starting with right and moving clockwise
         let pins = new Set([
-                    ...this.getTilesBetween(king.tile, getKey("H", king.tile.y)),
-                    ...this.getTilesBetweenDiag(king.tile, getKey("H", 1)),
-                    ...this.getTilesBetween(king.tile, getKey(king.tile.x, 1)),
-                    ...this.getTilesBetweenDiag(king.tile, getKey("A", 1)),
-                    ...this.getTilesBetween(king.tile, getKey("A", king.tile.y)),
-                    ...this.getTilesBetweenDiag(king.tile, getKey("A", 8)),
-                    ...this.getTilesBetween(king.tile, getKey(king.tile.x, 8)),
-                    ...this.getTilesBetweenDiag(king.tile, getKey("H", 8))]);
+                    ...Rules.getTilesBetween(king.tile, getKey("H", king.tile.y)),
+                    ...Rules.getTilesBetweenDiag(king.tile, getKey("H", 1)),
+                    ...Rules.getTilesBetween(king.tile, getKey(king.tile.x, 1)),
+                    ...Rules.getTilesBetweenDiag(king.tile, getKey("A", 1)),
+                    ...Rules.getTilesBetween(king.tile, getKey("A", king.tile.y)),
+                    ...Rules.getTilesBetweenDiag(king.tile, getKey("A", 8)),
+                    ...Rules.getTilesBetween(king.tile, getKey(king.tile.x, 8)),
+                    ...Rules.getTilesBetweenDiag(king.tile, getKey("H", 8))]);
 
         let sameColourCount = 0;
         let directionChange = false;

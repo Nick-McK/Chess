@@ -3,6 +3,8 @@ import {bishop, Piece, wP} from "./modules/Piece.js";
 import {Tile} from "./modules/Tile.js";
 import {Rules} from "./modules/Rules.js";
 
+import {RandomOpponent} from "./modules/RandomOpponent.js";
+
 let tableCopy = new Map();
 
 class Move {
@@ -10,8 +12,11 @@ class Move {
         this.board = new Board();
         this.tile = new Tile();
         this.piece = new Piece();
-        this.rules = new Rules();
+        // this.rules = new Rules();
 
+        this.randomOpponent = new RandomOpponent();
+
+        this.whiteToMove = true;
         this.wCheck = false;
         this.bCheck = false;
         this.MATE = false;
@@ -19,8 +24,26 @@ class Move {
 
     }
 
+    static draw() {
+        const ctx = canvas.getContext("2d");
+        // Draw the board
+        Board.drawBoard();
+        let pieceMap = getPieceMap(table);
+        // redraw each piece in the pieces[] array
+        for (let piece of pieceMap.values()) {
+            // if the piece has an image then draw it onto the canvas with the piece coords
+            
+            // console.log("PIECE Y COORD", piece.y);
+            if (piece.image) {
+                ctx.drawImage(piece.image, piece.x, piece.y);
+            }
+        }
+        
+        
+    }
+
     // Moves a piece on the canvas by listening to 3 mouse events: mousedown, mouseup and mousemove
-    movePieceUI() {
+    static movePieceUI() {
         
         // const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
@@ -34,7 +57,7 @@ class Move {
         let startY;
         let pieceHeld;
 
-        let whiteToMove = true;
+        
 
         let pieceMoves = new Set();
         
@@ -53,7 +76,7 @@ class Move {
         // redraw the scene
         function draw() {
             // Draw the board
-            self.board.drawBoard();
+            Board.drawBoard();
             let pieceMap = getPieceMap(table);
             // redraw each piece in the pieces[] array
             for (let piece of pieceMap.values()) {
@@ -103,7 +126,7 @@ class Move {
                     // }
 
 
-                    self.drawValid(piece);
+                    Move.drawValid(piece);
                 }
             }
             
@@ -129,8 +152,7 @@ class Move {
                 if (piece.isDragging) {
                     piece.isDragging = false;
 
-
-                    if (whiteToMove == true) {
+                    if (Game.whiteToMove) {
                         if (!piece.isWhite) {
                             piece.x = piece.tile.screenX;
                             piece.y = piece.tile.screenY;
@@ -145,7 +167,7 @@ class Move {
                     }
                     
                     // Calls to the method getClosestTile which will find the closest tile for the given piece after we have dropped it onto the board
-                    closest = self.getClosestTile(piece);
+                    closest = Move.getClosestTile(piece);
                     
                     // Sets the new x and y for the piece we have moved
                     piece.x = closest.screenX;
@@ -166,24 +188,25 @@ class Move {
                     }
 
                     // If the the tile that we drop our piece on is in the possible move list for our piece, then continue with executing a move. If not then move the piece back to the starting tile
-                    if ((self.getPossibleMoves(piece).has(closest))) {
+
+                    if ((Move.getPossibleMoves(piece).has(closest))) {
+
+                        console.log("FHSUJDHFKJSDHFKJSDF", Move.isCheck(piece.isWhite))
 
                         // If we are in check dont let us move until we resolve check
-                        if (self.isCheck(piece.isWhite)) {
-
-
-                            console.log("resolve moves", self.getResolveCheckMoves(piece))
+                        if (Move.isCheck(piece.isWhite)) {
                             draw();
+                            console.log("WHAT HAVE WE HERE");
 
-                            if (self.getResolveCheckMoves(piece).size == 0) {
+                            if (Move.getResolveCheckMoves(piece).size == 0) {
                                 console.log("THERE IS A CHECK THAT YOU NEED TO SOLVE!");
                                 piece.x = piece.tile.screenX;
                                 piece.y = piece.tile.screenY;
                                 draw();
                                 continue;
                             } else {
-                                let resolveMoves = self.getResolveCheckMoves(piece);
-                                let pieceMoves = self.getPossibleMoves(piece);
+                                let resolveMoves = Move.getResolveCheckMoves(piece);
+                                let pieceMoves = Move.getPossibleMoves(piece);
                                 let playableMoves = new Set();
 
                                 for (let move of resolveMoves) {
@@ -195,7 +218,7 @@ class Move {
                                 }
 
                                 if (playableMoves.has(toTile)) {
-                                    self.playMove(piece, piece.tile, toTile);
+                                    Move.playMove(piece, piece.tile, toTile);
                                 } else {
                                     console.log("THERE IS A CHECK THAT YOU NEED TO SOLVE!");
                                     piece.x = piece.tile.screenX;
@@ -206,12 +229,12 @@ class Move {
                                 
                             }
 
-                            self.playMoveSound();
+                            Move.playMoveSound();
                             // Determines whose turn it is
-                            if (whiteToMove) {
-                                whiteToMove = false;
+                            if (Game.whiteToMove) {
+                                Game.whiteToMove = false;
                             }else{
-                                whiteToMove = true;
+                                Game.whiteToMove = true;
                             }
    
                             // piece.x = piece.tile.screenX;
@@ -220,19 +243,17 @@ class Move {
                             continue;
                         }
 
-                        console.log("asdasdfasdfa", self.isPinned(piece))
-
-                        let pinnedPieceMap = self.isPinned(piece)
+                        let pinnedPieceMap = Move.isPinned(piece)
                         // Keeps track of if we have tried to move the pinned piece to a tile that is not a legal move
                         // WITHOUT THIS WE CAN JUST MOVE A PINNED PIECE AND CHECK OURSELVES
                         let pinnedPieceMove = false;
                         
-                        if (self.isPinned(piece).size == 1) {
+                        if (Move.isPinned(piece).size == 1) {
                             for (const [key, value] of pinnedPieceMap) {
                                 if (key == piece) {
                                     
-                                    let possibleMoves = self.getPossibleMoves(piece);
-                                    let legalMoves = self.isPinned(piece);
+                                    let possibleMoves = Move.getPossibleMoves(piece);
+                                    let legalMoves = Move.isPinned(piece);
                                     let playableMoves = new Set();
 
                                     // We can move while pinned only if we are capturing the piece that is pinning us
@@ -249,12 +270,12 @@ class Move {
                                     // If the move is both in the pieces move list
                                     // And the move is legal then we can play it
                                     if (playableMoves.has(toTile)) {
-                                        self.playMove(piece, piece.tile, toTile);
-                                        self.playCaptureSound();
-                                        if (whiteToMove) {
-                                            whiteToMove = false;
+                                        Move.playMove(piece, piece.tile, toTile);
+                                        Move.playCaptureSound();
+                                        if (Game.whiteToMove) {
+                                            Game.whiteToMove = false;
                                         }else{
-                                            whiteToMove = true;
+                                            Game.whiteToMove = true;
                                         }
                                         draw();
                                     } else {
@@ -275,26 +296,27 @@ class Move {
                         // As long as we have not tried to move a pinned piece into a tile that is not a legal move then we can play our move as normal
                         if (!pinnedPieceMove) {
                             draw();
-                            self.playMove(piece, piece.tile, toTile);
-                            self.playMoveSound();
+                            console.log("PLAYING THIS HSIT")
+                            Move.playMove(piece, piece.tile, toTile);
+                            Move.playMoveSound();
                             // Determines whose turn it is
-                            if (whiteToMove) {
-                                whiteToMove = false;
+                            if (Game.whiteToMove) {
+                                Game.whiteToMove = false;
                             }else{
-                                whiteToMove = true;
+                                Game.whiteToMove = true;
                             }
                             // If we are moving onto a tile that has a piece on it
                             // Play capturing sounds
                             if (targetTileVal != 0) {                            
                                 // If we dont have else draw() then when we capture on blacks turn white needs to move before the piece is removed
                                 // If we dont have this if statement then we can capture and then move twice in one turn
-                                if (whiteToMove) {
+                                if (Game.whiteToMove) {
                                     draw();
-                                    self.playCaptureSound();
+                                    Move.playCaptureSound();
                                 } 
                                 else {
                                     draw();
-                                    self.playCaptureSound();
+                                    Move.playCaptureSound();
                                 }
                             }
                             draw();
@@ -337,8 +359,8 @@ class Move {
                 // redraw the scene with any updates to the piece positions
                 draw();
                 // Draws the valid moves for the piece we are moving
-                self.drawValid(pieceHeld);
-                self.drawAttacked(pieceHeld);
+                Move.drawValid(pieceHeld);
+                Move.drawAttacked(pieceHeld);
                 // console.log("PieceHeld: ", pieceHeld);
 
                 // reset the starting mouse position for the next mousemove
@@ -356,7 +378,7 @@ class Move {
  * @param {Piece} piece the current piece we are moving 
  * @returns the tile that is closest to the piece we are moving
  */
-    getClosestTile(piece) {
+    static getClosestTile(piece) {
         let tiles = table.keys();
 
         for (let tile of tiles) {
@@ -373,14 +395,17 @@ class Move {
  * 
  * @param {Piece} piece the given piece that we need to draw available moves for on the board
  */
-    drawValid(piece) {
+
+
+// TODO: REDO PINNED AND CHECKED VALID MOVES
+    static drawValid(piece) {
         const ctx = canvas.getContext("2d");
         let validMoves = new Set();
-        validMoves = this.getPossibleMoves(piece);
+        validMoves = Move.getPossibleMoves(piece);
         // validMoves = this.findPieceMoves(piece);
 
-        if (this.bCheck || this.wCheck) {
-            let resolveMoves = this.getResolveCheckMoves(piece);
+        if (Game.bCheck || Game.wCheck) {
+            let resolveMoves = Move.getResolveCheckMoves(piece);
             let playableMoves = new Set();
 
             for (let move of resolveMoves) {
@@ -395,9 +420,8 @@ class Move {
             }
         }
 
-        if (this.isPinned(piece).size == 1) {
-            console.log("WHEN ARE WE HERE NOW")
-            let legalMoves = this.isPinned(piece);
+        if (Move.isPinned(piece).size == 1) {
+            let legalMoves = Move.isPinned(piece);
 
             for (let [p, move] of legalMoves) {
                 if (p != piece) break;
@@ -423,10 +447,10 @@ class Move {
 
 
     // Testing function to draw all the tiles that are under attack from both sides
-    drawAttacked(piece) {
+    static drawAttacked(piece) {
         const ctx = canvas.getContext("2d");
         let attackedTiles = new Set();
-        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+        attackedTiles = Rules.getAttackedTiles(piece.isWhite);
 
         
         for (let tiles of attackedTiles) {
@@ -444,12 +468,12 @@ class Move {
         }
     }
 
-    isPinned(piece) {
-        return this.rules.getPin(piece);
+    static isPinned(piece) {
+        return Rules.getPin(piece);
     }
 
-    getPinnedMoves(piece) {
-        let possibleMoves = this.getPossibleMoves(piece);
+    static getPinnedMoves(piece) {
+        let possibleMoves = Move.getPossibleMoves(piece);
         let legalMoves = new Set();
         let previousTile = piece.tile;
         
@@ -458,121 +482,39 @@ class Move {
     }
 
     // Gets all the moves that resolve the check
-    // TODO: Currently its getting all attacked tiles even if they dont relate to the check
-    // Maybe get all the attacked tiles that relate to the king
 
     // When we let go of a piece store the tile we place it on and then get all the tiles from that tile to the king - needs to be called when we set the check to true, or when we let go of a piece in myUp
 
-    // TODO: Need to make the kings resolving moves different, currently the king moves into a check and cannot move out of a check
-
 
     // Get the tiles between the last piece held
-    getResolveCheckMoves(piece) {
-        let wK, bK;
-        let broke = false;
-
-        // Get king positions
-        for (let p of getPieceMap(table).values()) {
-            if (p.type == "king" && p.isWhite) {
-                wK = p.tile;
-            }
-            if (p.type == "king" && !p.isWhite) {
-                bK = p.tile;
-            }
-        }
-
-        let attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
-
+    static getResolveCheckMoves(piece) {
         let resolveMoves = new Set();
-
-        let legalMoves = this.getPossibleMoves(piece);
-
+        let possibleMoves = Move.getPossibleMoves(piece);
         let previousTile = piece.tile;
 
-        for (let move of legalMoves) {
+        // console.log("PREVIOSU TILE", previousTile)
 
-            // console.log("PLAYING MOVE:", move, "broke status:", broke);
+        // console.log("OUR LEGALMOVES", possibleMoves, "FOR PIECE", piece);
+        // console.log("OUR ATTACKED TILES", attackedTiles);
+        
+        // console.log("POSSIBLE MOVES", possibleMoves, "FOR PIECE", piece);
 
-            // Plays each move on the board - we use a different method from playMove because if we used play move we would loop forever in checks when we look for checkmate
-            this.playTestMove(piece, piece.tile, move);
-            let responses = this.getResponse(!piece.isWhite);
-
-            for (let res of responses) { 
-                // Set this to false so that we dont break out of the loop from a previous break
-                broke = false;
-                if (res.size == 0) continue;
-                for (let response of res) {
-                    // console.log("response", response)
-                    // Ensures that the king does not abide by the same rules as the rest, means king cant move further into checks and has to move out
-                    if (piece.type == "king") {
-                        for (let tile of attackedTiles) {
-                            if (tile instanceof Tile) {
-                                if (tile == move) {
-                                    // console.log("DELETING MOVE KING", move);
-                                    resolveMoves.delete(move);
-                                    broke = true;
-                                    break;
-                                } 
-                            } else {
-                                for (let t of tile) {
-                                    if (t == move) {
-                                        // console.log("DELETEING KING MOVE ----------------------------------------", move);
-                                        resolveMoves.delete(move);
-                                        broke = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (broke) break;
-                        }
-                        if (broke) break;
-                        if (attackedTiles.has(move)) {
-                            // console.log("DELETING MOVE KING", move);
-                            resolveMoves.delete(move);
-                            broke = true
-                            break;
-                        } else {
-                            if (!resolveMoves.has(move) && legalMoves.has(move)) {
-                                // console.log("ADDING MOVE KING", move);
-                                resolveMoves.add(move);
-                            }
-                            
-                        }
-                    } else {
-                        if (response == bK || response == wK) {
-                            // console.log("DELETING MOVE", move);
-                            resolveMoves.delete(move);
-                            broke = true;
-                            break;
-                        } else {
-                            if (!resolveMoves.has(move)) {
-                                // console.log("ADDING MOVE", move);
-                                resolveMoves.add(move);
-                        
-                            }
-                        }
-                    }
-                    
-                }
-                // If we have broken out of the inner loop then we need to break out of the outer loop or we will just add the move again
-                // THINK OF A BETTER WAY TO DO THIS, THIS IS AWFUL
-                if (broke) {
-                    break;
-                }
+        for (let move of possibleMoves) {
+            Move.playTestMove(piece, piece.tile, move);
+            // console.log("MAKING MOVE", move);
+            // console.log("NEW CHECK STATE", Game.wCheck);
+            if (!Move.isCheck(piece.isWhite)) {
+                console.log("ADDING MOVE");
+                resolveMoves.add(move);
             }
-            // Reverts the table
-            this.unplayTestMove(piece, move, previousTile);
+            Move.unplayTestMove(piece, move, previousTile)
+
         }
-
-        console.log("checked state", this.bCheck, " <- black, white ->", this.wCheck, "FINALLY CHECKMATE?", this.MATE);
-
-
         return resolveMoves;
-
     }
 
-    getResponse(colour) {
-        return this.rules.getAllMoves(colour)
+    static getResponse(colour) {
+        return Rules.getAllMoves(colour)
     }
     
     /**
@@ -580,14 +522,13 @@ class Move {
     @returns  a set of all possible moves for a given piece
 
     **/ 
-    getPossibleMoves(piece) {
+    static getPossibleMoves(piece) {
 
-        let possibleMoves = this.rules.getPieceRules(piece);
+        let possibleMoves = Rules.getPieceRules(piece);
 
         // Stops the king from moving into check
         if (piece.type == "king") {
-            let attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
-            console.log("attackedTiles", attackedTiles);
+            let attackedTiles = Rules.getAttackedTiles(piece.isWhite);
             for (let move of possibleMoves) {
                 for (let tile of attackedTiles) {
                     // If the tile is not in a set in the attackedTiles set then check if its legal
@@ -606,6 +547,7 @@ class Move {
                 }
             }
         }
+        // console.log("GETTING POSSIBLE MOVES IN POSSIBLE MOVES", possibleMoves);
         return possibleMoves;
     }
 
@@ -619,12 +561,12 @@ class Move {
      * @param {Tile} toTile the target tile we are moving our piece to
     */
   
-     playMove(piece, fromTile, toTile) {
+     static playMove(piece, fromTile, toTile) {
         
         tableCopy = table; // Make a copy of the table so we can revert the move if we want
         if (!(fromTile == toTile)) {
             fromTile.isEmpty = true;
-            console.log("----------------SETTING PIECE'S TILE-------------------------");
+            
             piece.tile = toTile;
             piece.tile.isEmpty = false;
             // toTile.isEmpty = false;
@@ -638,10 +580,10 @@ class Move {
         // This lets us check for a check resolution
         let attackedTiles = new Set();
         // By giving this the opposite colour of the piece we are moving, we can get the tiles that we are attacking, so we can check for any checks after a move and before the checked player can make any moves - IMPORTANT
-        attackingTiles = this.rules.getAttackedTiles(!piece.isWhite);
+        attackingTiles = Rules.getAttackedTiles(!piece.isWhite);
         // console.log("attacked:" , attackedTiles);
 
-        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+        attackedTiles = Rules.getAttackedTiles(piece.isWhite);
 
         let pieceMap = getPieceMap(table)
         let wK, bK;
@@ -662,11 +604,11 @@ class Move {
             if (tile instanceof Tile) {
                 // Checks to see if the tile in the attacked tiles list is the tile the king is on for black and white
                 if (tile != wK) {
-                    this.wCheck = false;
+                    Game.wCheck = false;
                 }
-                if (tile != bK && this.bCheck) {
+                if (tile != bK && Game.bCheck) {
                     
-                    this.bCheck = false;
+                    Game.bCheck = false;
                 }
                 // If the king is on these tiles then set the check for that colour to true and break out of the loop, dont need the broke variable since we are in the first loop
                 // Need to also check for the piece we are moving as we don't want
@@ -674,33 +616,33 @@ class Move {
                 // This stops white's pieces from checking it's own king and black's 
                 // Checking their own king
                 if (!piece.isWhite && tile == bK) {
-                    this.bCheck = true;
+                    Game.bCheck = true;
                     break;
                 }
                 if (piece.isWhite && tile == wK) {
-                    this.wCheck = true;
+                    Game.wCheck = true;
                     break;
                 }
             } else {
                 for (let t of tile) {
                     
                     if (t != wK) {
-                        this.wCheck = false;         
+                        Game.wCheck = false;         
                     }
-                    if (t != bK && this.bCheck) {
+                    if (t != bK && Game.bCheck) {
                         
-                        this.bCheck = false;        
+                        Game.bCheck = false;        
                     }
                     // Same as above but use the broke variable to let us know we have found a check and break out of the outer loop
                     // Also uses the same check as above to stop white and black from
                     // Checking their own pieces
                     if (!piece.isWhite && t == bK) {
-                        this.bCheck = true;
+                        Game.bCheck = true;
                         broke = true;
                         break;
                     }
                     if (piece.isWhite && t == wK) {
-                        this.wCheck = true;
+                        Game.wCheck = true;
                         broke = true;
                         break;
                     }
@@ -720,10 +662,11 @@ class Move {
             if (tile instanceof Tile) {
                 // Need to check the piece we are moving as well, if we don't then whites pieces can check white
                 if (!piece.isWhite && tile == wK) {
-                    this.wCheck = true;
+                    console.log("SETTING TRUE");
+                    Game.wCheck = true;
                 }
                 if (piece.isWhite && tile == bK) {
-                    this.bCheck = true;
+                    Game.bCheck = true;
                 }
             } else {
                 // This loops through any sets of tiles that may be in our move list
@@ -731,65 +674,84 @@ class Move {
                     // Implements the same check as above making sure white cannot
                     // Check its own pieces and black its own pieces
                     if (!piece.isWhite && t == wK) {
-                        this.wCheck = true;
+                        console.log("SETTING TRUE 2");
+                        Game.wCheck = true;
                     }
                     if (piece.isWhite && t == bK) {
-                        this.bCheck = true;
+                        Game.bCheck = true;
                     } 
                  }
             }    
         }
         // If either colour is in check then we check for a checkmate
-        if (this.wCheck || this.bCheck) {
+        if (Game.wCheck || Game.bCheck) {
             // We want to find the opposite of the colour we have just moved
             // If we move white into a check position on black then we want to check if
             // Black has any moves to resolve the check
             // If there are no moves (size 0) then we have checkmate!
-            if (this.getCheckMate(!piece.isWhite).size == 0) {
-                this.MATE = true;
+
+            console.log("WHAT IS OIR PIECE COLOUR", piece.isWhite, "SO OPPOSITE IS", !piece.isWhite)
+            if (Move.getCheckMate(!piece.isWhite).size == 0) {
+                Game.MATE = true;
+                if (Game.wCheck) {
+                    alert("BLACK WON");
+                }
+                if (Game.bCheck) {
+                    alert("WHITE WON");
+                }
             }
         }
 
-        console.log("black check state:", this.bCheck);
-        console.log("white check state:", this.wCheck);
-        console.log("CHECKMATE:", this.MATE);
+        console.log("black check state:", Game.bCheck);
+        console.log("white check state:", Game.wCheck);
+        console.log("CHECKMATE:", Game.MATE);
+        console.log("");
+        // console.log("------------------------------------------------")
+        if (piece.isWhite) {
+            console.log("BLACK TO MOVE");
+        } else {
+            console.log("WHITE TO MOVE")
+        }
+        
     }
 
     // MAYBE GET RID OF THE TRUE CHECK AS IF WE ARE USING THIS WE ARE ALREADY IN CHECK AND WE CAN ONLY MOVE OUT OF CHECK WE CANNOT DOUBLE CHECK
-    playTestMove(piece, fromTile, toTile) {
+    static playTestMove(piece, fromTile, toTile) {
+
+        let pieceCopy = Object.assign({}, piece);
         
         tableCopy = new Map(table); // Make a copy of the table so we can revert the move if we want
         if (!(fromTile == toTile)) {
             fromTile.isEmpty = true;
-            console.log("SETTING TESTING TILE TO", toTile);
-            piece.tile = toTile;
-            piece.tile.isEmpty = false;
-            let cloneTable = new Map(table).set(toTile, piece) 
+            // console.log("SETTING TESTING TILE TO", toTile);
+            pieceCopy.tile = toTile;
+            pieceCopy.tile.isEmpty = false;
+            let cloneTable = new Map(table).set(toTile, pieceCopy) 
                                         .set(fromTile, 0);
             updateTable(cloneTable);
-            console.log("TESTING FROM ", fromTile, " to ", toTile, ". Here is our new map: ", table);
-            console.log("");
-            console.log("tableCopy", tableCopy);
+            // console.log("TESTING FROM ", fromTile, " to ", toTile, ". Here is our new map: ", table);
+            // console.log("");
+            // console.log("tableCopy", tableCopy);
         }
         // This checks to see if we put the other player in check, so we can look for black's check on whites moves
         let attackingTiles = new Set();
         // This lets us check for a check resolution
         let attackedTiles = new Set();
         // By giving this the opposite colour of the piece we are moving, we can get the tiles that we are attacking, so we can check for any checks after a move and before the checked player can make any moves - IMPORTANT
-        attackingTiles = this.rules.getAttackedTiles(!piece.isWhite);
+        attackingTiles = Rules.getAttackedTiles(!pieceCopy.isWhite);
         // console.log("attacked:" , attackedTiles);
 
-        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+        attackedTiles = Rules.getAttackedTiles(pieceCopy.isWhite);
 
         let pieceMap = getPieceMap(table)
         let wK, bK;
         // Finding the tile the king is on so we can calculate check
-        for (let piece of pieceMap.values()) {
-            if (piece.type == "king" && piece.isWhite) {
-                wK = piece.tile;
+        for (let p of pieceMap.values()) {
+            if (p.type == "king" && p.isWhite) {
+                wK = p.tile;
             }
-            if (piece.type == "king" && !piece.isWhite) {
-                bK = piece.tile;
+            if (p.type == "king" && !p.isWhite) {
+                bK = p.tile;
             }
         }
 
@@ -800,42 +762,42 @@ class Move {
             let broke = false;
             if (tile instanceof Tile) {
                 // Checks to see if the tile in the attacked tiles list is the tile the king is on for black and white
-                if (tile != wK && this.wCheck) {
+                if (tile != wK && Game.wCheck) {
                     // console.log("false 1", tile);
-                    this.wCheck = false;
+                    Game.wCheck = false;
                 }
-                if (tile != bK && this.bCheck) {
+                if (tile != bK && Game.bCheck) {
                     // console.log("false 1", tile);
-                    this.bCheck = false;
+                    Game.bCheck = false;
                 }
                 // If the king is on these tiles then set the check for that colour to true and break out of the loop, dont need the broke variable since we are in the first loop
-                if (!piece.isWhite && tile == bK) {
-                    this.bCheck = true;
+                if (!pieceCopy.isWhite && tile == bK) {
+                    Game.bCheck = true;
                     break;
                 }
-                if (piece.isWhite && tile == wK) {
-                    this.wCheck = true;
+                if (pieceCopy.isWhite && tile == wK) {
+                    Game.wCheck = true;
                     break;
                 }
             } else {
                 for (let t of tile) {
                     
-                    if (t != wK && this.wCheck) {
+                    if (t != wK && Game.wCheck) {
                         // console.log("false 2");
-                        this.wCheck = false;         
+                        Game.wCheck = false;         
                     }
-                    if (t != bK && this.bCheck) {
+                    if (t != bK && Game.bCheck) {
                         // console.log("false 2");
-                        this.bCheck = false;        
+                        Game.bCheck = false;        
                     }
                     // Same as above but use the broke variable to let us know we have found a check and break out of the outer loop
-                    if (!piece.isWhite && t == bK) {
-                        this.bCheck = true;
+                    if (!pieceCopy.isWhite && t == bK) {
+                        Game.bCheck = true;
                         broke = true;
                         break;
                     }
-                    if (piece.isWhite && t == wK) {
-                        this.wCheck = true;
+                    if (pieceCopy.isWhite && t == wK) {
+                        Game.wCheck = true;
                         broke = true;
                         break;
                     }
@@ -850,54 +812,52 @@ class Move {
         for (let tile of attackingTiles) {
             
             if (tile instanceof Tile) {
-                if (!piece.isWhite && tile == wK) {
-                    this.wCheck = true;
+                if (!pieceCopy.isWhite && tile == wK) {
+                    Game.wCheck = true;
                 }
-                if (piece.isWhite && tile == bK) {
-                    this.bCheck = true;
+                if (pieceCopy.isWhite && tile == bK) {
+                    Game.bCheck = true;
                 }
             } else {
                 // This loops through any sets of tiles that may be in our move list
                 for (let t of tile) {
-                    if (!piece.isWhite && t == wK) {
-                        this.wCheck = true; 
+                    if (!pieceCopy.isWhite && t == wK) {
+                        Game.wCheck = true; 
                     }
-                    if (piece.isWhite && t == bK) {
-                        this.bCheck = true;
+                    if (pieceCopy.isWhite && t == bK) {
+                        Game.bCheck = true;
                     } 
                  }
             }    
         }
 
-        console.log("testing black check state:", this.bCheck);
-        console.log("testing white check state:", this.wCheck);
+        console.log("testing black check state:", Game.bCheck);
+        console.log("testing white check state:", Game.wCheck);
     }
 
     // Method that will let us undo a move which helps us look for checks
-    unplayTestMove(piece, fromTile, toTile) {
+    static unplayTestMove(piece, fromTile, toTile) {
+
+        let pieceCopy = Object.assign({}, piece);
+
         if (!(fromTile == toTile)) {
-            // fromTile.isEmpty = true;
-            // piece.tile = toTile;
-            // piece.tile.isEmpty = false;
+            fromTile.isEmpty = true;
+            pieceCopy.tile = toTile;
+            pieceCopy.tile.isEmpty = false;
             
-            // let cloneTable = new Map(table).set(toTile, piece) 
-            // .set(fromTile, 0);
-            // updateTable(cloneTable);
 
             updateTable(tableCopy);
             console.log("table reverted");
-            console.log("reverted to ", fromTile, " to ", toTile, ". Here is our new map: ", table);
             
         }
-        // This checks to see if we put the other player in check, so we can look for black's check on whites moves
+
         let attackingTiles = new Set();
-        // This lets us check for a check resolution
         let attackedTiles = new Set();
-        // By giving this the opposite colour of the piece we are moving, we can get the tiles that we are attacking, so we can check for any checks after a move and before the checked player can make any moves - IMPORTANT
-        attackingTiles = this.rules.getAttackedTiles(!piece.isWhite);
+
+        attackingTiles = Rules.getAttackedTiles(!piece.isWhite);
         // console.log("attacked:" , attackedTiles);
 
-        attackedTiles = this.rules.getAttackedTiles(piece.isWhite);
+        attackedTiles = Rules.getAttackedTiles(piece.isWhite);
 
         let pieceMap = getPieceMap(table)
         let wK, bK;
@@ -916,38 +876,40 @@ class Move {
             let broke = false;
             if (tile instanceof Tile) {
                 // Checks to see if the tile in the attacked tiles list is the tile the king is on for black and white
-                if (tile != wK && this.wCheck) {
-                    this.wCheck = false;
+                if (tile != wK && Game.wCheck) {
+                    console.log("FALSE 1");
+                    Game.wCheck = false;
                 }
-                if (tile != bK) {
-                    this.bCheck = false;
+                if (tile != bK && Game.bCheck) {
+                    Game.bCheck = false;
                 }
                 // If the king is on these tiles then set the check for that colour to true and break out of the loop, dont need the broke variable since we are in the first loop
                 if (tile == bK) {
-                    this.bCheck = true;
+                    Game.bCheck = true;
                     break;
                 }
                 if (tile == wK) {
-                    this.wCheck = true;
+                    Game.wCheck = true;
                     break;
                 }
             } else {
                 for (let t of tile) {
                     
-                    if (t != wK && this.wCheck) {
-                        this.wCheck = false;         
+                    if (t != wK && Game.wCheck) {
+                        console.log("FALSE 2");
+                        Game.wCheck = false;         
                     }
                     if (t != bK) {
-                        this.bCheck = false;        
+                        Game.bCheck = false;        
                     }
                     // Same as above but use the broke variable to let us know we have found a check and break out of the outer loop
                     if (t == bK) {
-                        this.bCheck = true;
+                        Game.bCheck = true;
                         broke = true;
                         break;
                     }
-                    if (t == wK) {
-                        this.wCheck = true;
+                    if (t == wK && !Game.wCheck) {
+                        Game.wCheck = true;
                         broke = true;
                         break;
                     }
@@ -962,50 +924,52 @@ class Move {
         // This is needed as if we click on a white piece when its blacks turn it will try play resolve moves, and uncheck black
         for (let tile of attackingTiles) {
             if (tile instanceof Tile) {
-                if (tile == wK) {
-                    this.wCheck = true;
+                if (tile == wK && !piece.isWhite) {
+                    Game.wCheck = true;
                 }
-                if (tile == bK) {
-                    this.bCheck = true;
+                if (tile == bK && piece.isWhite) {
+                    Game.bCheck = true;
                 }
-                if (tile != wK && this.wCheck) {
-                    this.wCheck = false;
-                }
-                if (tile != bK && this.bCheck) {
-                    this.bCheck = false;
-                }
+                // if (tile != wK && Game.wCheck) {
+                //     console.log("FALSE 3");
+                //     Game.wCheck = false;
+                // }
+                // if (tile != bK && Game.bCheck) {
+                //     Game.bCheck = false;
+                // }
             } else {
                 // This loops through any sets of tiles that may be in our move list
                 for (let t of tile) {
-                    if (t == wK) {
-                        this.wCheck = true;       
+                    if (t == wK && !piece.isWhite) {
+                        Game.wCheck = true;       
                     }
-                    if (t == bK) {
-                        this.bCheck = true;        
+                    if (t == bK && piece.isWhite) {
+                        Game.bCheck = true;        
                     }
-                    if (tile != wK) {
-                        this.wCheck = false;
+                    if (tile != wK && !piece.isWhite) {
+                        console.log("FALSE 4");
+                        Game.wCheck = false;
                     }
-                    if (tile != bK) {
-                        this.bCheck = false;
+                    if (tile != bK && piece.isWhite) {
+                        Game.bCheck = false;
                     } 
                  }
             }    
         }
 
-        console.log("reverting black check state to:", this.bCheck);
-        console.log("reverting white check state to:", this.wCheck);
+        console.log("reverting black check state to:", Game.bCheck);
+        console.log("reverting white check state to:", Game.wCheck);
     }
 
-    getCheckMate(colour) {
-        let resolveMoves = this.getAllResolveCheckMoves(colour)
+    static getCheckMate(colour) {
+        let resolveMoves = Move.getAllResolveCheckMoves(colour)
 
         // console.log("RESOLVING MOVES", resolveMoves, "FOR COLOUR", colour);
 
         return resolveMoves;
     }
 
-    getAllResolveCheckMoves(colour) {
+    static getAllResolveCheckMoves(colour) {
         let allMoves = new Set();
 
 
@@ -1014,8 +978,7 @@ class Move {
 
             // console.log("VALUE", value, "value colour", value.isWhite,"colour we are checking", colour);
             if (value.isWhite == colour) {
-                let getMoves = this.getResolveCheckMoves(value);
-                console.log("getMoves", getMoves);
+                let getMoves = Move.getResolveCheckMoves(value);
                 getMoves.forEach(move => allMoves.add(move));
             }
         }
@@ -1023,13 +986,109 @@ class Move {
         return allMoves;
     }
 
-    isCheck(colour) {
+    static isCheck(colour) {
         if (colour) {
-            return this.wCheck;
+            return Game.wCheck;
         } else {
-            return this.bCheck;
+            return Game.bCheck;
         }
     }
+
+    // randomOpponent() {
+    //     this.draw();
+    //     if (this.whiteToMove) {
+    //         let randomNumber;
+
+    //         let pieces = getPieceMap(table);
+    //         // Gets white pieces
+    //         for (let [tile, piece] of pieces) {
+    //             if (piece.isWhite != true) {
+    //                 pieces.delete(tile);
+    //             }
+    //         }
+
+    //         randomNumber = Math.floor(Math.random() * pieces.size);
+
+    //         // Create an array from the map to pick a random piece
+    //         let mapArray = Array.from(pieces);
+        
+    //         let playingPiece = mapArray.at(randomNumber);
+
+    //         let pieceMoves = this.getPossibleMoves(playingPiece[1]); // this may not always return a piece with valid moves
+
+    //         if (pieceMoves.size != 0) {
+    //             let randomMove = Array.from(pieceMoves);
+            
+    //             let rand = Math.floor(Math.random() * pieceMoves.size);
+
+    //             let moveWeArePlaying = randomMove.at(rand);
+
+
+    //             // playingMove[1] will always be our tile
+
+    //             // console.log("PLAYING PEICE", playingPiece[1]);
+    //             // console.log("PLAYING PEICE TILE", playingPiece[1].tile);
+    //             // console.log("MOVE WE ARE PLAYING", moveWeArePlaying);
+                
+    //             console.log("------------------------", playingPiece[1]);
+    //             console.log("------------------------")
+
+    //             this.playMove(playingPiece[1], playingPiece[1].tile, moveWeArePlaying);
+                
+    //             // Update x and y positions
+    //             playingPiece[1].x = moveWeArePlaying.screenX;
+    //             playingPiece[1].y = moveWeArePlaying.screenY;
+
+    //             // console.log("");
+    //             // console.log("THIS IS OUR NEW BOARD", table);
+    //             // console.log("");
+
+    //             this.whiteToMove = false;
+                
+
+    //             this.draw();
+
+    //         } else {
+    //             // If we pick a random piece that does not have any legal moves
+    //             // Call the method again and since it's still whites turn it will try again
+    //             this.randomOpponent();
+    //         }
+            
+    //     } else {
+    //         let blackPieces = getPieceMap(table);
+    //         let randomNumber
+
+    //         for (let [tile, piece] of blackPieces) {
+    //             if (piece.isWhite != false) {
+    //                 blackPieces.delete(tile);
+    //             }
+    //         }
+    //         randomNumber = Math.floor(Math.random() * blackPieces.size);
+
+    //         let mapArray = Array.from(blackPieces);
+    //         let playingPiece = mapArray.at(randomNumber);
+    //         let pieceMoves = this.getPossibleMoves(playingPiece[1]);
+
+    //         if (pieceMoves.size != 0) {
+    //             let randomMove = Array.from(pieceMoves);
+    //             let rand = Math.floor(Math.random() * pieceMoves.size);
+    //             let moveWeArePlaying = randomMove.at(rand);
+
+    //             console.log("------------------------", playingPiece[1]);
+    //             console.log("------------------------")
+
+    //             this.playMove(playingPiece[1], playingPiece[1].tile, moveWeArePlaying);
+
+    //             playingPiece[1].x = moveWeArePlaying.screenX;
+    //             playingPiece[1].y = moveWeArePlaying.screenY;
+                
+    //             this.whiteToMove = true;
+    //             this.draw();
+    //         } else {
+    //             this.randomOpponent();
+    //         }
+    //     }
+    // }
 
     run() {
         // this.board.initBoard();
@@ -1037,18 +1096,35 @@ class Move {
         // this.movePieceUI();
         // this.board.initialDraw();
         // this.board.drawBoard();
-        this.board.createBoardHash();
-        this.board.populateHash();
-        this.movePieceUI();
+        Board.createBoardHash();
+        Board.populateHash();
+
+        Move.movePieceUI();
         getPieceMap(table);
+
+        let self = this; // needed as we use a function to loop until we have checkmate
+
+        // console.log("WHITE TO MOVE OR SOMETIHNNG", this.whiteToMove)
+
+        // RandomOpponent.randomOpponent();
+        // let interval = setInterval(function() { 
+            
+        // if (self.MATE == false) { 
+        //     RandomOpponent.randomOpponent();
+        // } else { 
+        //     alert("STOP");
+        //     clearInterval(interval);
+        // }
+        // }, 100);
+        
     }
 
-    playMoveSound() {
+    static playMoveSound() {
         let audio = new Audio("../assets/move.mp3");
         return audio.play();
     }
 
-    playCaptureSound() {
+    static playCaptureSound() {
         let audio = new Audio("../assets/capture.mp3");
         return audio.play();
     }
@@ -1075,8 +1151,12 @@ function getPieceMap(map) {
 }
 
 
-const start = new Move();
 
-start.run();
 
-export {Move, getPieceMap};
+const Game = new Move();
+
+console.log("WHITE TO MOVE", Game.wCheck);
+
+Game.run();
+
+export {Move, getPieceMap, Game};

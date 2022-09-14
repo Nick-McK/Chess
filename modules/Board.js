@@ -45,7 +45,7 @@ class Board {
     }
 
 
-    drawBoard() {
+    static drawBoard() {
         const ctx = canvas.getContext("2d");
         
         for (let i = 0; i < FILE.length; i++) {
@@ -66,110 +66,10 @@ class Board {
         
     }
 
-    // initialDraw() {
-    //     const ctx = canvas.getContext("2d");
-    //     for (let x = 1; x < FILE.length+1; x++) {
-    //         for (let y = 1; y < RANK.length+1; y++) {
-    //             ctx.font = "18px kavivanar";
-    //             ctx.strokeText(FILE[x]+RANK[RANK.length-y], x * 100 , y * 100);
-    //         }
-            
-    //     }
-    // }
-
-    populate() {
-        
-// TODO: change this crude method of placeing pieces at start of game
-
-/* Populates the BOARD array with the special pieces. This works by assuming white is playing at the bottom of the board therefore, we can assume that when x and y are at specified values, that is also where the piece should be on the board and in the array. To do this however, we need to set the coords of the piece to be the same X coord as the x counter x100 (we haven't flipped the board horizontally) and set the Y coord to be the opposite of the y counter x100. To do this we take the final row and set the coord to be the BOARD length (8) minus 1 as we are counting from 0, and then multiply by 100 for the final Y coord.
-
-Set the isEmpty value to false for all the tiles we have put pieces on
-    
-    TODO: This is a very poor method of placing pieces as we need to loop through all 64 squares, when we only need 32.
-
-*/
-        for (let x = 0; x < BOARD.length; x++) {
-            for (let y = 0; y < BOARD[0].length; y++) {
-
-                if ((x < BOARD.length) && y == 1) {
-                    let p = new Piece(x * 100, (BOARD.length - 2) * 100, 100, 100, wP, BOARD[x][y], true, pawn, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty= false;
-                }
-                else if ((x <= BOARD.length) && y == 6) {
-                    let p = new Piece(x * 100, y + 95, 100, 100, bP, BOARD[x][y], false, pawn, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-
-
-
-
-
-                if ((x == 0 && y == 0) || (x == 7 && y == 0)) {
-                    let p = new Piece(x * 100, (BOARD.length - 1) * 100, 100, 100, wR, BOARD[x][y], true, rook, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-
-                }
-                else if ((x == 0 && y == 7) || (x == 7 && y == 7)) {
-                    let p = new Piece(x * 100, 0, 100, 100, bR, BOARD[x][y], false, rook, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-
-                else if ((x == 1 && y == 0) || (x == 6 && y == 0)) {
-                    let p = new Piece(x * 100, (BOARD.length - 1) * 100, 100, 100, wN, BOARD[x][y], true, knight, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-                else if ((x == 1 && y == 7) || (x == 6 && y == 7)) {
-                    let p = new Piece(x * 100, 0, 100, 100, bN, BOARD[x][y], false, knight, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-
-                else if ((x == 2 && y == 0) || (x == 5 && y == 0)) {
-                    let p = new Piece(x * 100, (BOARD.length - 1) * 100, 100, 100, wB, BOARD[x][y], true, bishop, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-                else if ((x == 2 && y == 7) || (x == 5 && y == 7)) {
-                    let p = new Piece(x * 100, 0, 100, 100, bB, BOARD[x][y], false, bishop, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-
-                else if ((x == 3 && y == 0)) {
-                    let p = new Piece(x * 100, (BOARD.length - 1) * 100, 100, 100, wQ, BOARD[x][y], true, queen, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-                else if ((x == 3 && y == 7)) {
-                    let p = new Piece(x * 100, 0, 100, 100, bQ, BOARD[x][y], false, queen, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-
-                else if ((x == 4 && y == 0)) {
-                    let p = new Piece(x * 100, (BOARD.length - 1) * 100, 100, 100, wK, BOARD[x][y], true, king, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-                else if ((x == 4 && y == 7)) {
-                    let p = new Piece(x * 100, 0, 100, 100, bK, BOARD[x][y], false, king, false);
-                    pieces.push(p);
-                    BOARD[x][y].isEmpty = false;
-                }
-            }
-        }
-    }
-
-     //TODO: Potential hashtable implementation of the board with the tiles as keys and the pieces as values
     // Not all tiles need to have a piece so keys do not always need values
     // Would allow for looking up easily with key lookups and wouldnt need to use 2d array
 
-    createBoardHash() {
+    static createBoardHash() {
         // Loop through the file first then the ranks
         // Doing this we go through all A values then B values etc..
         for (let i = 0; i < FILE.length; i++) {
@@ -200,7 +100,7 @@ Set the isEmpty value to false for all the tiles we have put pieces on
         console.log("Starting Board: ", table);
     }
 
-    populateHash() {
+    static populateHash() {
         let tile =  table.keys();
         let i = 0;
         for (tile of table.keys()) {
