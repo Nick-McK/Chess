@@ -1,5 +1,6 @@
 import {Tile} from './Tile.js';
 import {Piece, pawn, rook, knight, bishop, queen, king, wR, wN, wB, wK, wQ, wP, bR, bN, bB, bK, bQ, bP} from './Piece.js';
+import { Game, getPieceMap } from '../Move.js';
 
 const canvas = document.getElementById("canvas");
 const FILE = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -99,6 +100,108 @@ class Board {
         }
         console.log("Starting Board: ", table);
     }
+
+    // TODO: Implement the final components of the FEN string ( w KQkq - 0 1) w is whos move it is KQ is king side and queen side castling for white and black (upper and lower) 0 is the halfmove number (50 move rule) and the second number is the fullmove counter updated when black moves
+    static fenString() {
+        let position = prompt("Enter a FEN string to get started (Leaving this blank will use the starting board as default)");
+        
+        if (position == "") {
+            position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w";
+        }
+
+        console.log("POSITION", position);
+
+        let dictionary = new Map().set("r", rook)
+                                  .set("n", knight)
+                                  .set("b", bishop)
+                                  .set("q", queen)
+                                  .set("k", king)
+                                  .set("p", pawn)
+                                  .set("R", rook)
+                                  .set("N", knight)
+                                  .set("B", bishop)
+                                  .set("Q", queen)
+                                  .set("K", king)
+                                  .set("P", pawn);
+
+        let pieceImage = new Map().set("p", bP)
+                                  .set("r", bR)
+                                  .set("n", bN)
+                                  .set("b", bB)
+                                  .set("k", bK)
+                                  .set("q", bQ)
+                                  .set("P", wP)
+                                  .set("R", wR)
+                                  .set("N", wN)
+                                  .set("B", wB)
+                                  .set("K", wK)
+                                  .set("Q", wQ);
+
+        // Convert table to an array to get specific tiles based on their numberical position
+        let tableArray = Array.from(table.keys());
+
+        let file = 0, rank = 7, i = 0, counter = 0, posDone;
+
+        // Loop through each character in the string so we can parse it
+        for (let char of position) {
+
+            if (char == " ") {
+                counter++;
+                posDone = position.slice(0, counter)
+                break;
+            }
+
+            // console.log("char", char);
+            if (char == "/") {
+                file = 0;
+                rank--;
+                i++;
+                counter++;
+            } else {
+                // If the character in the FEN string is a number then offset the file
+                // By that number so we will skip tiles horizontally
+                if (!isNaN(char * 1)) {
+                    counter++;
+                    file += parseInt(char); // so we dont get things like 41 when we want to do 4 + 1
+                } else {
+                    // If the character is uppercase then its white(true) else its black(false)
+                    let pieceColour = char === char.toUpperCase();
+
+                    console.log("RANK", rank, "FILE", file);
+
+                    // console.log("OUR CHAR IS", char);
+                    let tile = tableArray.at(rank + file * 8);
+                    console.log("tile", tile);
+                    table.set(tile, new Piece(file * 100, i * 100, 100, 100, pieceImage.get(char), tile, pieceColour, dictionary.get(char), false));
+                    // tile.isEmpty = false;
+                    // console.log("OUR PIECE IS", table.get(tile));
+                    counter++;
+                    file++;
+                }
+            }
+        }
+
+        // Deals with colour to move, castling and move counters
+        for (let char of posDone) {
+            if (char == "w") {
+                Game.whiteToMove = true;
+            } else if (char == "b") {
+                Game.whiteToMove = false;
+            }
+
+            if (char == " ") continue;
+
+
+        }
+
+        // new Piece(file * 100, rank * 100, 100, 100, pieceImage.get(char), tile, pieceColour, dictionary.get(char), false);
+        console.log("OUR TABLE", table);
+    }
+
+    // // Checks if a character is upper case
+    // static isUpper(char) {
+    //     return char === char.toUpperCase();
+    // }
 
     static populateHash() {
         let tile =  table.keys();
