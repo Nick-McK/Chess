@@ -82,7 +82,9 @@ class Rules {
         let captureB = Rules.getKey(convertToChar(currentTileXCode - 1), piece.tile.y - 1);
         let captureRB = Rules.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
 
-        if (piece.isWhite) {
+        // If it is undefined then we need to promote
+        
+        if (piece.isWhite && inFrontW != undefined) {
             if (piece.tile.y == 2) {
                 switch(inFrontW.isEmpty && twoInFrontW.isEmpty) {
                 case true:
@@ -113,39 +115,50 @@ class Rules {
                     }
             }
 
-        }else if (!(piece.isWhite)) {
-            if (piece.tile.y == 7) {
-                switch(inFrontB.isEmpty && twoInFrontB.isEmpty) {
-                    case true:
-                        moves.add(inFrontB);
-                        moves.add(twoInFrontB);
-                    case false:
-                        if (inFrontB.isEmpty) {
+        } else {
+            if (inFrontB != undefined) {
+                if (piece.tile.y == 7 && inFrontB !== undefined) {
+                    switch(inFrontB.isEmpty && twoInFrontB.isEmpty) {
+                        case true:
                             moves.add(inFrontB);
+                            moves.add(twoInFrontB);
+                        case false:
+                            if (inFrontB.isEmpty) {
+                                moves.add(inFrontB);
+                            }
+                    }
+                }else if (inFrontB.isEmpty && inFrontB !== undefined){
+                    moves.add(inFrontB);
+                }
+                switch(!(piece.tile.x == "A" || piece.tile.x == "H") && inFrontB !== undefined) {
+                    case true:
+                        if (!captureRB.isEmpty && table.get(captureRB).isWhite != piece.isWhite) {
+                            moves.add(captureRB);
+                        }
+                        if (!captureB.isEmpty && table.get(captureB).isWhite != piece.isWhite) {
+                            moves.add(captureB);
+                        }
+                    case false:
+                        if (piece.tile.x == "A" && !captureRB.isEmpty && table.get(captureRB).isWhite != piece.isWhite) {
+                            moves.add(captureRB);
+                        }else if(piece.tile.x == "H" && !captureB.isEmpty && table.get(captureB).isWhite != piece.isWhite) {
+                            moves.add(captureB);
                         }
                 }
-            }else if (inFrontB.isEmpty){
-                moves.add(inFrontB);
+                 
+            } else {
+                console.log("");
             }
-            switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
-                case true:
-                    if (!captureRB.isEmpty) {
-                        moves.add(captureRB);
-                    }
-                    if (!captureB.isEmpty) {
-                        moves.add(captureB);
-                    }
-                case false:
-                    if (piece.tile.x == "A" && !captureRB.isEmpty) {
-                        moves.add(captureRB);
-                    }else if(piece.tile.x == "H" && !captureB.isEmpty) {
-                        moves.add(captureB);
-                    }
-            }
-
-            
         }
+        
+        // Only get pawn moves if the pawn is not at the opponents end of the board
+        
+            
         return moves;
+    }
+
+    static pawnPromotion() {
+
     }
 
     // We want to add every tile from the rooks starting tile to the end of the board as a move
@@ -299,10 +312,14 @@ class Rules {
  */
  static kingRules(piece) {
         let moves = new Set();
+        
         for (let key of table.keys()) {
             let fileDif = Math.abs(compareFile(piece.tile, key));
             let rankDif = Math.abs(compareRank(piece.tile, key));
+
+            
             if (((fileDif == 1 && rankDif == 1) || (fileDif == 0 && rankDif == 1) || (fileDif == 1 && rankDif == 0)) && table.get(key).isWhite != piece.isWhite) {
+                
                 moves.add(key)
             }
             // Remove all tiles that are being attacked from the kings move list

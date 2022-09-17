@@ -3,7 +3,7 @@ import {bishop, Piece, wP} from "./modules/Piece.js";
 import {Tile} from "./modules/Tile.js";
 import {Rules} from "./modules/Rules.js";
 
-import {RandomOpponent} from "./modules/RandomOpponent.js";
+import {RandomOpponent} from "./modules/opponents/RandomOpponent.js";
 
 let tableCopy = new Map();
 
@@ -32,7 +32,6 @@ class Move {
         // redraw each piece in the pieces[] array
         for (let piece of pieceMap.values()) {
             // if the piece has an image then draw it onto the canvas with the piece coords
-            
             // console.log("PIECE Y COORD", piece.y);
             if (piece.image) {
                 ctx.drawImage(piece.image, piece.x, piece.y);
@@ -504,7 +503,7 @@ class Move {
             // console.log("MAKING MOVE", move);
             // console.log("NEW CHECK STATE", Game.wCheck);
             if (!Move.isCheck(piece.isWhite)) {
-                console.log("ADDING MOVE");
+                // console.log("ADDING CHECK RESOLUTION");
                 resolveMoves.add(move);
             }
             Move.unplayTestMove(piece, move, previousTile)
@@ -523,6 +522,9 @@ class Move {
 
     **/ 
     static getPossibleMoves(piece) {
+
+        console.log("piece", piece);
+        console.log("CURRENT TILE", piece.tile);
 
         let possibleMoves = Rules.getPieceRules(piece);
 
@@ -547,7 +549,7 @@ class Move {
                 }
             }
         }
-        // console.log("GETTING POSSIBLE MOVES IN POSSIBLE MOVES", possibleMoves);
+        console.log("GETTING POSSIBLE MOVES IN POSSIBLE MOVES", possibleMoves);
         return possibleMoves;
     }
 
@@ -662,7 +664,7 @@ class Move {
             if (tile instanceof Tile) {
                 // Need to check the piece we are moving as well, if we don't then whites pieces can check white
                 if (!piece.isWhite && tile == wK) {
-                    console.log("SETTING TRUE");
+                    // console.log("SETTING TRUE");
                     Game.wCheck = true;
                 }
                 if (piece.isWhite && tile == bK) {
@@ -674,7 +676,7 @@ class Move {
                     // Implements the same check as above making sure white cannot
                     // Check its own pieces and black its own pieces
                     if (!piece.isWhite && t == wK) {
-                        console.log("SETTING TRUE 2");
+                        // console.log("SETTING TRUE 2");
                         Game.wCheck = true;
                     }
                     if (piece.isWhite && t == bK) {
@@ -689,8 +691,7 @@ class Move {
             // If we move white into a check position on black then we want to check if
             // Black has any moves to resolve the check
             // If there are no moves (size 0) then we have checkmate!
-
-            console.log("WHAT IS OIR PIECE COLOUR", piece.isWhite, "SO OPPOSITE IS", !piece.isWhite)
+            console.log("CHECKING FOR CHECKMATE...")
             if (Move.getCheckMate(!piece.isWhite).size == 0) {
                 Game.MATE = true;
                 if (Game.wCheck) {
@@ -701,12 +702,12 @@ class Move {
                 }
             }
         }
-
+        console.log("");
         console.log("black check state:", Game.bCheck);
         console.log("white check state:", Game.wCheck);
         console.log("CHECKMATE:", Game.MATE);
-        console.log("");
-        // console.log("------------------------------------------------")
+        // console.log("");
+        console.log("------------------------------------------------")
         if (piece.isWhite) {
             console.log("BLACK TO MOVE");
         } else {
@@ -831,8 +832,8 @@ class Move {
             }    
         }
 
-        console.log("testing black check state:", Game.bCheck);
-        console.log("testing white check state:", Game.wCheck);
+        // console.log("testing black check state:", Game.bCheck);
+        // console.log("testing white check state:", Game.wCheck);
     }
 
     // Method that will let us undo a move which helps us look for checks
@@ -844,11 +845,7 @@ class Move {
             fromTile.isEmpty = true;
             pieceCopy.tile = toTile;
             pieceCopy.tile.isEmpty = false;
-            
-
             updateTable(tableCopy);
-            console.log("table reverted");
-            
         }
 
         let attackingTiles = new Set();
@@ -877,7 +874,7 @@ class Move {
             if (tile instanceof Tile) {
                 // Checks to see if the tile in the attacked tiles list is the tile the king is on for black and white
                 if (tile != wK && Game.wCheck) {
-                    console.log("FALSE 1");
+                    // console.log("FALSE 1");
                     Game.wCheck = false;
                 }
                 if (tile != bK && Game.bCheck) {
@@ -896,7 +893,7 @@ class Move {
                 for (let t of tile) {
                     
                     if (t != wK && Game.wCheck) {
-                        console.log("FALSE 2");
+                        // console.log("FALSE 2");
                         Game.wCheck = false;         
                     }
                     if (t != bK) {
@@ -947,7 +944,7 @@ class Move {
                         Game.bCheck = true;        
                     }
                     if (tile != wK && !piece.isWhite) {
-                        console.log("FALSE 4");
+                        // console.log("FALSE 4");
                         Game.wCheck = false;
                     }
                     if (tile != bK && piece.isWhite) {
@@ -957,8 +954,8 @@ class Move {
             }    
         }
 
-        console.log("reverting black check state to:", Game.bCheck);
-        console.log("reverting white check state to:", Game.wCheck);
+        // console.log("reverting black check state to:", Game.bCheck);
+        // console.log("reverting white check state to:", Game.wCheck);
     }
 
     static getCheckMate(colour) {
@@ -967,6 +964,20 @@ class Move {
         // console.log("RESOLVING MOVES", resolveMoves, "FOR COLOUR", colour);
 
         return resolveMoves;
+    }
+
+    static getPiecesWithResolveCheckMoves(colour) {
+        let pieceArray = new Array();
+        for (let [tile, piece] of getPieceMap(table)) {
+            if (piece.isWhite != colour) continue;
+            let moves = Move.getResolveCheckMoves(piece);
+            // If piece has resolve moves then add it to the map with its tile as a key
+            if (moves.size != 0) {
+                pieceArray.push(piece);
+            }
+        }
+        // console.log("PIECE ARRAY IN METHOD", pieceArray);
+        return pieceArray;
     }
 
     static getAllResolveCheckMoves(colour) {
@@ -994,128 +1005,28 @@ class Move {
         }
     }
 
-    // randomOpponent() {
-    //     this.draw();
-    //     if (this.whiteToMove) {
-    //         let randomNumber;
-
-    //         let pieces = getPieceMap(table);
-    //         // Gets white pieces
-    //         for (let [tile, piece] of pieces) {
-    //             if (piece.isWhite != true) {
-    //                 pieces.delete(tile);
-    //             }
-    //         }
-
-    //         randomNumber = Math.floor(Math.random() * pieces.size);
-
-    //         // Create an array from the map to pick a random piece
-    //         let mapArray = Array.from(pieces);
-        
-    //         let playingPiece = mapArray.at(randomNumber);
-
-    //         let pieceMoves = this.getPossibleMoves(playingPiece[1]); // this may not always return a piece with valid moves
-
-    //         if (pieceMoves.size != 0) {
-    //             let randomMove = Array.from(pieceMoves);
-            
-    //             let rand = Math.floor(Math.random() * pieceMoves.size);
-
-    //             let moveWeArePlaying = randomMove.at(rand);
-
-
-    //             // playingMove[1] will always be our tile
-
-    //             // console.log("PLAYING PEICE", playingPiece[1]);
-    //             // console.log("PLAYING PEICE TILE", playingPiece[1].tile);
-    //             // console.log("MOVE WE ARE PLAYING", moveWeArePlaying);
-                
-    //             console.log("------------------------", playingPiece[1]);
-    //             console.log("------------------------")
-
-    //             this.playMove(playingPiece[1], playingPiece[1].tile, moveWeArePlaying);
-                
-    //             // Update x and y positions
-    //             playingPiece[1].x = moveWeArePlaying.screenX;
-    //             playingPiece[1].y = moveWeArePlaying.screenY;
-
-    //             // console.log("");
-    //             // console.log("THIS IS OUR NEW BOARD", table);
-    //             // console.log("");
-
-    //             this.whiteToMove = false;
-                
-
-    //             this.draw();
-
-    //         } else {
-    //             // If we pick a random piece that does not have any legal moves
-    //             // Call the method again and since it's still whites turn it will try again
-    //             this.randomOpponent();
-    //         }
-            
-    //     } else {
-    //         let blackPieces = getPieceMap(table);
-    //         let randomNumber
-
-    //         for (let [tile, piece] of blackPieces) {
-    //             if (piece.isWhite != false) {
-    //                 blackPieces.delete(tile);
-    //             }
-    //         }
-    //         randomNumber = Math.floor(Math.random() * blackPieces.size);
-
-    //         let mapArray = Array.from(blackPieces);
-    //         let playingPiece = mapArray.at(randomNumber);
-    //         let pieceMoves = this.getPossibleMoves(playingPiece[1]);
-
-    //         if (pieceMoves.size != 0) {
-    //             let randomMove = Array.from(pieceMoves);
-    //             let rand = Math.floor(Math.random() * pieceMoves.size);
-    //             let moveWeArePlaying = randomMove.at(rand);
-
-    //             console.log("------------------------", playingPiece[1]);
-    //             console.log("------------------------")
-
-    //             this.playMove(playingPiece[1], playingPiece[1].tile, moveWeArePlaying);
-
-    //             playingPiece[1].x = moveWeArePlaying.screenX;
-    //             playingPiece[1].y = moveWeArePlaying.screenY;
-                
-    //             this.whiteToMove = true;
-    //             this.draw();
-    //         } else {
-    //             this.randomOpponent();
-    //         }
-    //     }
-    // }
-
     run() {
-        // this.board.initBoard();
-        // this.board.populate();
-        // this.movePieceUI();
-        // this.board.initialDraw();
-        // this.board.drawBoard();
         Board.createBoardHash();
-        Board.populateHash();
+        // Move.movePieceUI();
+        // getPieceMap(table);
+        Board.fenString();
+        
+        Move.draw();
 
-        Move.movePieceUI();
-        getPieceMap(table);
-
-        let self = this; // needed as we use a function to loop until we have checkmate
-
-        // console.log("WHITE TO MOVE OR SOMETIHNNG", this.whiteToMove)
+        canvas.onclick = () => {
+            RandomOpponent.randomOpponent();
+        }
 
         // RandomOpponent.randomOpponent();
         // let interval = setInterval(function() { 
             
-        // if (self.MATE == false) { 
+        // if (Game.MATE == false) { 
         //     RandomOpponent.randomOpponent();
         // } else { 
         //     alert("STOP");
         //     clearInterval(interval);
         // }
-        // }, 100);
+        // }, 2000);
         
     }
 
@@ -1155,7 +1066,6 @@ function getPieceMap(map) {
 
 const Game = new Move();
 
-console.log("WHITE TO MOVE", Game.wCheck);
 
 Game.run();
 
