@@ -1,5 +1,6 @@
 import {Move, getPieceMap, Game} from "../../Move.js";
 import {table} from "../Board.js";
+import { Rules } from "../Rules.js";
 
 class RandomOpponent {
     constructor() {
@@ -78,8 +79,6 @@ class RandomOpponent {
                     let rand = Math.floor(Math.random() * pieceMoves.size);
 
                     let moveWeArePlaying = randomMove.at(rand);
-
-
                     
                     // console.log("------------------------", playingPiece[1]);
                     // console.log("------------------------");
@@ -89,7 +88,26 @@ class RandomOpponent {
                     console.log("ALL OF THIS PIECES MOVES", pieceMoves);
 
                     Move.playMove(playingPiece[1], playingPiece[1].tile, moveWeArePlaying);
-                    
+
+                    // If we are playing a castling move then we also need to move the rook to the correct position
+                    if (playingPiece[1].type == "king" && moveWeArePlaying == Rules.getKey("G", 1)) {
+                        let KSideRook = table.get(Rules.getKey("H", 1));
+                        Move.playMove(KSideRook, KSideRook.tile, Rules.getKey("F", 1));
+
+                        KSideRook.x = Rules.getKey("F", 1).screenX;
+                        KSideRook.y = Rules.getKey("F", 1).screenY;
+                    } else if (playingPiece[1].type == "king" && moveWeArePlaying == Rules.getKey("B", 1)) {
+
+                        let QSideRook = table.get(Rules.getKey("A", 1));
+
+                        Move.playMove(QSideRook, QSideRook.tile, Rules.getKey("C", 1));
+
+                        QSideRook.x = Rules.getKey("C", 1).screenX;
+                        QSideRook.Y = Rules.getKey("C", 1).screenY;
+                    }
+
+
+
                     // Update x and y positions
                     playingPiece[1].x = moveWeArePlaying.screenX;
                     playingPiece[1].y = moveWeArePlaying.screenY;
@@ -180,6 +198,24 @@ class RandomOpponent {
     
                     Move.playMove(playPiece[1], playPiece[1].tile, moveToPlay);
     
+
+                    // If we are playing a castling move then we also need to move the rook to the correct position
+                    if (playPiece[1].type == "king" && moveToPlay == Rules.getKey("G", 8)) {
+                        let kSideRook = table.get(Rules.getKey("H", 1));
+                        Move.playMove(kSideRook, kSideRook.tile, Rules.getKey("F", 1));
+
+                        kSideRook.x = Rules.getKey("F", 1).screenX;
+                        kSideRook.y = Rules.getKey("F", 1).screenY;
+                    } else if (playPiece[1].type == "king" && moveToPlay == Rules.getKey("B", 8)) {
+
+                        let qSideRook = table.get(Rules.getKey("A", 8));
+
+                        Move.playMove(qSideRook, qSideRook.tile, Rules.getKey("C", 1));
+
+                        qSideRook.x = Rules.getKey("C", 1).screenX;
+                        qSideRook.Y = Rules.getKey("C", 1).screenY;
+                    }
+
                     
                     playPiece[1].x = moveToPlay.screenX;
                     playPiece[1].y = moveToPlay.screenY;

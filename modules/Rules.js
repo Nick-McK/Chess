@@ -1,7 +1,7 @@
 import {BOARD, Board, FILE, RANK, table} from "./Board.js";
 import {Piece, wP, pawn, rook} from "./Piece.js";
 import {Tile} from "./Tile.js";
-import {Move, getPieceMap} from "../Move.js";
+import {Move, getPieceMap, Game} from "../Move.js";
 // let bCheck = false, wCheck = false;
 class Rules {
     constructor() {
@@ -83,38 +83,41 @@ class Rules {
         let captureRB = Rules.getKey(convertToChar(currentTileXCode + 1), piece.tile.y - 1);
 
         // If it is undefined then we need to promote
-        
-        if (piece.isWhite && inFrontW != undefined) {
-            if (piece.tile.y == 2) {
-                switch(inFrontW.isEmpty && twoInFrontW.isEmpty) {
-                case true:
-                    moves.add(inFrontW);
-                    moves.add(twoInFrontW);
-                case false:
-                    if (inFrontW.isEmpty) {
+        if (piece.isWhite) {
+            if (inFrontW != undefined) {
+                if (piece.tile.y == 2 && inFrontW !== undefined) {
+                    switch(inFrontW.isEmpty && twoInFrontW.isEmpty) {
+                    case true:
                         moves.add(inFrontW);
+                        moves.add(twoInFrontW);
+                    case false:
+                        if (inFrontW.isEmpty) {
+                            moves.add(inFrontW);
+                        }
                     }
+                }else if (inFrontW.isEmpty && inFrontW !== undefined){
+                    moves.add(inFrontW);
                 }
-            }else if (inFrontW.isEmpty){
-                moves.add(inFrontW);
-            }
 
-            switch(!(piece.tile.x == "A" || piece.tile.x == "H")) {
-                case true:
-                    if (!capture.isEmpty && table.get(capture).isWhite != piece.isWhite) {
-                        moves.add(capture);
-                    }
-                    if (!captureR.isEmpty && table.get(captureR).isWhite != piece.isWhite) {
-                        moves.add(captureR);
-                    }
-                case false:
-                    if (piece.tile.x == "A" && !captureR.isEmpty && table.get(captureR).isWhite != piece.isWhite) {
-                        moves.add(captureR);
-                    }else if(piece.tile.x == "H" && !capture.isEmpty && table.get(capture).isWhite != piece.isWhite) {
-                        moves.add(capture);
-                    }
+                switch(!(piece.tile.x == "A" || piece.tile.x == "H") && inFrontW !== undefined) {
+                    case true:
+                        if (!capture.isEmpty && table.get(capture).isWhite != piece.isWhite) {
+                            moves.add(capture);
+                        }
+                        if (!captureR.isEmpty && table.get(captureR).isWhite != piece.isWhite) {
+                            moves.add(captureR);
+                        }
+                    case false:
+                        if (piece.tile.x == "A" && !captureR.isEmpty && table.get(captureR).isWhite != piece.isWhite) {
+                            moves.add(captureR);
+                        }else if(piece.tile.x == "H" && !capture.isEmpty && table.get(capture).isWhite != piece.isWhite) {
+                            moves.add(capture);
+                        }
+                }
+            } else {
+                // TODO: Promotion
+                console.log("");
             }
-
         } else {
             if (inFrontB != undefined) {
                 if (piece.tile.y == 7 && inFrontB !== undefined) {
@@ -147,6 +150,7 @@ class Rules {
                 }
                  
             } else {
+                // TODO: Promotion
                 console.log("");
             }
         }
@@ -170,6 +174,8 @@ class Rules {
      * This is the same for black, but the break and continue statements are flipped to account for the flipped board
      * 
      * TODO: Castling
+     * 
+     * TODO: can move over enemy pieces 
      * 
      * @param {Piece} piece 
      * @returns a set of moves for the rooks
@@ -336,6 +342,79 @@ class Rules {
 
 
         }
+
+        // Castling -> When we use this we also need to check that we are playing this move
+        // If we do play this move then we also need to play the rook move to complete the castle
+
+        let KCastleTiles = Rules.getTilesBetween(piece.tile, getKey("G", 1));
+        let emptyTilesK = false;
+
+        console.log("WHITE KING SIDE CASTLE TILES", KCastleTiles);
+        for (let tile of KCastleTiles) {
+            console.log("TILE", tile);
+           
+            if (tile.isEmpty) {
+                emptyTilesK = true;
+            } else if (!tile.isEmpty) {
+                emptyTilesK = false;
+                break;
+            }
+        }
+
+        let QCastleTiles = Rules.getTilesBetween(piece.tile, getKey("B", 1));
+        let emptyTilesQ = false;
+
+        console.log("WHITE QUEEN SIDE CASTLE TILES", QCastleTiles);
+
+        for (let tile of QCastleTiles) {
+            console.log("TILE", tile);
+
+            if (tile.isEmpty) {
+                emptyTilesQ = true;
+            } else if (!tile.isEmpty) {
+                emptyTilesQ = false;
+                break;
+            }
+        }
+        
+        let kCastleTiles = Rules.getTilesBetween(piece.tile, getKey("G", 8));
+        let emptyTilesk = false;
+
+
+        for (let tile of kCastleTiles) {
+            if (tile.isEmpty) {
+                emptyTilesk = true;
+            } else if (!tile.isEmpty) {
+                emptyTilesk = false;
+                break;
+            }
+        }
+        let qCastleTiles = Rules.getTilesBetween(piece.tile, getKey("B", 8));
+        let emptyTilesq = false;
+
+
+        for (let tile of qCastleTiles) {
+            if (tile.isEmpty) {
+                emptyTilesq = true;
+            } else if (!tile.isEmpty) {
+                emptyTilesq = false;
+                break;
+            }
+        }
+
+        if (piece.isWhite && Game.KCastle && emptyTilesK) {
+            moves.add(getKey("G", 1));
+        }
+        if (piece.isWhite && Game.QCastle && emptyTilesQ) {
+            moves.add(getKey("B", 1));
+        }
+        if (!piece.isWhite && Game.kCastle && emptyTilesk) {
+            moves.add(getKey("G", 8));
+        }
+        if (!piece.isWhite && Game.qCastle && emptyTilesq) {
+            moves.add(getKey("B", 8));
+        }
+
         // console.log("checkStatus:", check);
         return moves;
     }

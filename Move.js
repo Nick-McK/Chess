@@ -20,6 +20,13 @@ class Move {
         this.wCheck = false;
         this.bCheck = false;
         this.MATE = false;
+        
+        this.KCastle = true;
+        this.QCastle = true;
+        this.kCastle = true;
+        this.qCastle = true;
+        
+        
         this.counter = 0;
 
     }
@@ -714,6 +721,16 @@ class Move {
             console.log("WHITE TO MOVE")
         }
         
+        // If either of these pieces are moved then we cant castle
+        if (piece.type == "rook" && piece.x == "A" && piece.isWhite || piece.type == "king" && piece.isWhite) {
+            Game.QCastle = false;
+        } else if (piece.type == "rook" && piece.x == "H" && piece.isWhite || piece.type == "king" && piece.isWhite) {
+            Game.KCastle = false; // cant castle king side
+        } else if (piece.type == "rook" && piece.x == "A" && !piece.isWhite || piece.type == "king" && !piece.isWhite) {
+            Game.qCastle = false;
+        } else if (piece.type == "rook" && piece.x == "H" && !piece.isWhite || piece.type == "king" && !piece.isWhite) {
+            Game.kCastle = false;
+        }
     }
 
     // MAYBE GET RID OF THE TRUE CHECK AS IF WE ARE USING THIS WE ARE ALREADY IN CHECK AND WE CAN ONLY MOVE OUT OF CHECK WE CANNOT DOUBLE CHECK
