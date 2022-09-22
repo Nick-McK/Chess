@@ -1,5 +1,6 @@
 import {Move, getPieceMap, Game} from "../../Move.js";
 import {table} from "../Board.js";
+import { wQ } from "../Piece.js";
 import { Rules } from "../Rules.js";
 
 class RandomOpponent {
@@ -106,6 +107,11 @@ class RandomOpponent {
                         QSideRook.Y = Rules.getKey("C", 1).screenY;
                     }
 
+                    // Deal with promotion when we move onto the tile and not when we next select the piece
+                    if (playingPiece[1].type == "pawn" && moveWeArePlaying.y == 8) {
+                        playingPiece[1].type = "queen";
+                        playingPiece[1].image = wQ;
+                    }
 
 
                     // Update x and y positions
@@ -214,6 +220,12 @@ class RandomOpponent {
 
                         qSideRook.x = Rules.getKey("C", 1).screenX;
                         qSideRook.Y = Rules.getKey("C", 1).screenY;
+                    }
+
+                    // Deal with promotion when we move onto the tile and not when we next select the piece
+                    if (playPiece[1].type == "pawn" && moveToPlay.y == 1) {
+                        playPiece[1].type = "queen";
+                        playPiece[1].image = bQ;
                     }
 
                     
